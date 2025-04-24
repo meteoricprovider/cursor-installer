@@ -1,0 +1,15 @@
+{
+  "name": "@utility-scripts/cursor",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "engines": {
+    "bun": "1.2.10"
+  },
+  "devDependencies": {
+    "@types/bun": "1.2.10"
+  },
+  "peerDependencies": {
+    "typescript": "5.8.3"
+  }
+}
