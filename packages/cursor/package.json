@@ -6,6 +6,12 @@
   "engines": {
     "bun": "1.2.10"
   },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "effect": "3.14.14"
+  },
   "devDependencies": {
     "@types/bun": "1.2.10"
   },
