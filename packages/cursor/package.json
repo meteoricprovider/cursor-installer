@@ -3,17 +3,13 @@
   "private": true,
   "type": "module",
   "main": "src/index.ts",
-  "engines": {
-    "bun": "1.2.10"
-  },
   "scripts": {
-    "build": "tsc"
+    "dev": "bun run ./src/index.ts"
   },
   "dependencies": {
+    "@effect/platform": "0.80.14",
+    "@effect/platform-bun": "0.61.2",
     "effect": "3.14.14"
-  },
-  "devDependencies": {
-    "@types/bun": "1.2.10"
   },
   "peerDependencies": {
     "typescript": "5.8.3"
