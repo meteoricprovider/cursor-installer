@@ -23,12 +23,6 @@
     // Some stricter flags (disabled by default)
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noPropertyAccessFromIndexSignature": true,
-
-    // Paths
-    "baseUrl": ".",
-    "paths": {
-      "@utility-scripts/*": ["src/*"]
-    }
+    "noPropertyAccessFromIndexSignature": true
   }
 }

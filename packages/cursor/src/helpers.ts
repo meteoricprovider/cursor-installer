@@ -56,6 +56,8 @@ const downloadCursor = Effect.gen(function* () {
 });
 
 export const installCursor = Effect.gen(function* () {
+  const httpCLient = yield* HttpClient.HttpClient;
+
   const fs = yield* FileSystem.FileSystem;
 
   yield* downloadCursor;
@@ -80,19 +82,22 @@ export const installCursor = Effect.gen(function* () {
 
   yield* fs.remove("/tmp/cursor.appimage");
 
-  yield* fs.copy(
-    "./assets/cursor.png",
+  const appIconResponse = yield* httpCLient.get(
+    "https://us1.discourse-cdn.com/flex020/uploads/cursor1/original/2X/f/f7bc157cca4b97c3f0fc83c3c1a7094871a268df.png"
+  );
+
+  const arrayBuffer = yield* appIconResponse.arrayBuffer;
+
+  yield* fs.writeFile(
     `${homeDirectory}/bin/cursor/cursor.png`,
-    {
-      overwrite: true,
-    }
+    Buffer.from(arrayBuffer)
   );
 
   // Create desktop entry
   yield* fs.writeFileString(
     `${homeDirectory}/.local/share/applications/cursor.desktop`,
     `[Desktop Entry]
-  Name=Cursor-test
+  Name=Cursor
   Exec=${homeDirectory}/bin/cursor/cursor.appimage
   Icon=${homeDirectory}/bin/cursor/cursor.png
   Type=Application

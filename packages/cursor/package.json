@@ -1,11 +1,16 @@
 {
-  "name": "@utility-scripts/cursor",
-  "private": true,
+  "name": "cursor-installer",
+  "version": "0.2.1",
+  "private": false,
   "type": "module",
   "main": "src/index.ts",
+  "engines": {
+    "bun": "^1.2.10"
+  },
   "scripts": {
     "dev": "bun run ./src/index.ts"
   },
+  "bin": "./src/index.ts",
   "dependencies": {
     "@effect/platform": "0.80.14",
     "@effect/platform-bun": "0.61.2",

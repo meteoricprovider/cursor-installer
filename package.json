@@ -1,6 +1,5 @@
 {
   "name": "utility-scripts",
-  "private": true,
   "workspaces": [
     "packages/*"
   ],
