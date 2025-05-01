@@ -32,10 +32,7 @@ export const installCursor = Effect.gen(function* () {
   // Create desktop entry
   yield* fs.writeFileString(
     `${homeDirectory}/.local/share/applications/cursor.desktop`,
-    `[Meta]
-Version=${version}
-  
-[Desktop Entry]
+    `[Desktop Entry]
 Name=Cursor
 Comment=Better than VSCode
 Exec=${homeDirectory}/bin/cursor/cursor.appimage %F
@@ -43,7 +40,11 @@ Icon=${homeDirectory}/bin/cursor/cursor.png
 Type=Application
 Categories=TextEditor;Development;IDE;
 MimeType=application/x-code-workspace;
-Keywords=cursor;`
+Keywords=cursor;
+
+[Meta]
+Version=${version}
+`
   );
 });
 
@@ -61,7 +62,6 @@ const downloadCursor = Effect.gen(function* () {
     );
 
   const currentVersion = yield* getCurrentCursorVersion;
-  console.log({ currentVersion, newVersion });
 
   if (currentVersion && currentVersion === newVersion) {
     return yield* Effect.fail(new Error("No new version found"));
