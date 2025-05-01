@@ -8,7 +8,10 @@
     "install",
     "linux"
   ],
-  "version": "0.3.3",
+  "version": "0.4.0",
+  "author": "meteoricprovider",
+  "license": "MIT",
+  "repository": "https://github.com/meteoricprovider/cursor-installer",
   "private": false,
   "type": "module",
   "main": "src/index.ts",
