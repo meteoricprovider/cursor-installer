@@ -156,6 +156,8 @@ const downloadCursor = Effect.gen(function* () {
 	);
 
 	if (currentVersion && currentVersion === newVersion) {
+		s.stop("No new version available");
+
 		return yield* Effect.fail(
 			new NoNewVersionError({
 				currentVersion,
