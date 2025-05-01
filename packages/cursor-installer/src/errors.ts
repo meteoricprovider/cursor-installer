@@ -29,3 +29,13 @@ export class HomeDirectoryNotFoundError extends Data.TaggedError(
     super({ message: "Home directory not found." });
   }
 }
+
+export class OperationCancelledError extends Data.TaggedError(
+  "OperationCancelledError"
+)<{
+  message: string;
+}> {
+  constructor() {
+    super({ message: "Operation cancelled." });
+  }
+}

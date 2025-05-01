@@ -1,9 +1,14 @@
-import { Console, Effect, Schedule, Stream } from "effect";
+import { Effect, Schedule, Stream } from "effect";
 import { HttpClient, HttpClientResponse, FileSystem } from "@effect/platform";
+import { spinner, log, confirm, isCancel } from "@clack/prompts";
 
 import { CursorDownloadObject } from "./schema";
 import { cursorIcon, homeDirectory } from "./consts";
-import { HomeDirectoryNotFoundError, NoNewVersionError } from "./errors";
+import {
+  HomeDirectoryNotFoundError,
+  NoNewVersionError,
+  OperationCancelledError,
+} from "./errors";
 
 export const installCursor = Effect.gen(function* () {
   if (!homeDirectory) {
@@ -13,6 +18,8 @@ export const installCursor = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
 
   const version = yield* downloadCursor;
+
+  log.info(`Installing Cursor ${version}...`);
 
   // Add execute permissions
   yield* fs.chmod("/tmp/cursor.appimage", 0o775);
@@ -69,30 +76,43 @@ const downloadCursor = Effect.gen(function* () {
   );
 
   if (currentVersion && currentVersion === newVersion) {
-    return yield* Effect.fail(
-      new NoNewVersionError({
-        currentVersion,
-        newVersion,
+    // return yield* Effect.fail(
+    //   new NoNewVersionError({
+    //     currentVersion,
+    //     newVersion,
+    //   })
+    // );
+  }
+
+  const shouldDownload = yield* Effect.orElse(
+    Effect.promise(() =>
+      confirm({
+        message: `New version available: ${newVersion}. Do you want to install it?`,
       })
-    );
+    ),
+    () => Effect.fail(new OperationCancelledError())
+  );
+
+  if (!shouldDownload || isCancel(shouldDownload)) {
+    return yield* Effect.fail(new OperationCancelledError());
   }
 
   const appimageResponse = yield* httpCLient.get(downloadUrl);
 
-  const contentLength = appimageResponse.headers["content-length"];
-
   const appimageStream = appimageResponse.stream;
 
-  const sink = fs.sink("/tmp/cursor.appimage");
-
   let currentLength = 0;
+
+  const contentLength = appimageResponse.headers["content-length"];
+
+  const s = spinner({ indicator: "timer" });
+
+  s.start("Downloading Cursor...");
 
   yield* Stream.run(
     appimageStream.pipe(
       Stream.tap((chunk) =>
         Effect.gen(function* () {
-          yield* Console.clear;
-
           currentLength += chunk.byteLength;
 
           const percentage = `${(
@@ -100,12 +120,14 @@ const downloadCursor = Effect.gen(function* () {
             100
           ).toFixed(0)}%`;
 
-          return yield* Console.log(percentage);
+          s.message(percentage);
         })
       )
     ),
-    sink
+    fs.sink("/tmp/cursor.appimage")
   );
+
+  s.stop("Downloaded Cursor");
 
   return newVersion;
 });
