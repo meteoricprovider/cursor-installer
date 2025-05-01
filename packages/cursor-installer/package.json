@@ -1,6 +1,14 @@
 {
   "name": "cursor-installer",
-  "version": "0.3.2",
+  "description": "Utility script to install or update Cursor on Linux",
+  "keywords": [
+    "cursor",
+    "installer",
+    "update",
+    "install",
+    "linux"
+  ],
+  "version": "0.3.3",
   "private": false,
   "type": "module",
   "main": "src/index.ts",
