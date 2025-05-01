@@ -61,6 +61,7 @@ const downloadCursor = Effect.gen(function* () {
     );
 
   const currentVersion = yield* getCurrentCursorVersion;
+  console.log({ currentVersion, newVersion });
 
   if (currentVersion && currentVersion === newVersion) {
     return yield* Effect.fail(new Error("No new version found"));
@@ -116,7 +117,7 @@ const getCurrentCursorVersion = Effect.gen(function* () {
     line.startsWith("Version=")
   );
 
-  const oldVersion = versionLine?.split("=")[1];
+  const currentVersion = versionLine?.split("=")[1];
 
-  return oldVersion;
+  return currentVersion;
 });
