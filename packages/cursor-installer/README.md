@@ -35,23 +35,6 @@ The script will:
 - Linux operating system
 - Bun runtime (^1.2.10)
 
-## Development
-
-To develop or modify this package:
-
-```bash
-# Clone the repository
-git clone https://github.com/meteoricprovider/utility-scripts.git
-cd utility-scripts
-
-# Install dependencies
-bun install
-
-# Run in development mode
-cd packages/cursor-installer
-bun run dev
-```
-
 ## Dependencies
 
 - [Typescript](https://www.typescriptlang.org/)

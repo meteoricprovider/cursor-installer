@@ -1,16 +1,16 @@
 {
   "name": "cursor-installer",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": false,
   "type": "module",
   "main": "src/index.ts",
   "engines": {
     "bun": "^1.2.10"
   },
+  "bin": "./src/index.ts",
   "scripts": {
     "dev": "bun run ./src/index.ts"
   },
-  "bin": "./src/index.ts",
   "dependencies": {
     "@clack/core": "0.4.2",
     "@clack/prompts": "0.10.1",

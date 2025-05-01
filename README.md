@@ -18,27 +18,6 @@ This project uses [Bun](https://bun.sh/) as the JavaScript runtime and package m
 
 - Bun 1.2.10 or higher
 
-### Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/meteoricprovider/utility-scripts.git
-cd utility-scripts
-
-# Install dependencies
-bun install
-```
-
-### Development Workflow
-
-Each package is contained in the `packages/` directory and can be worked on independently.
-
-```bash
-# Run a specific package in development mode
-cd packages/cursor-installer
-bun run dev
-```
-
 ## License
 
 MIT
