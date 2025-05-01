@@ -1,12 +1,13 @@
-import { Console, Effect, Stream } from "effect";
+import { Console, Effect, Schedule, Stream } from "effect";
 import { HttpClient, HttpClientResponse, FileSystem } from "@effect/platform";
 
 import { CursorDownloadObject } from "./schema";
 import { cursorIcon, homeDirectory } from "./consts";
+import { HomeDirectoryNotFoundError, NoNewVersionError } from "./errors";
 
 export const installCursor = Effect.gen(function* () {
   if (!homeDirectory) {
-    return yield* Effect.fail(new Error("bruh"));
+    return yield* Effect.fail(new HomeDirectoryNotFoundError());
   }
 
   const fs = yield* FileSystem.FileSystem;
@@ -19,10 +20,7 @@ export const installCursor = Effect.gen(function* () {
   // Move file to bin
   yield* fs.copy(
     "/tmp/cursor.appimage",
-    `${homeDirectory}/bin/cursor/cursor.appimage`,
-    {
-      overwrite: true,
-    }
+    `${homeDirectory}/bin/cursor/cursor.appimage`
   );
 
   yield* fs.remove("/tmp/cursor.appimage");
@@ -56,15 +54,27 @@ const downloadCursor = Effect.gen(function* () {
     "https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=stable"
   );
 
-  const { downloadUrl, version: newVersion } =
-    yield* HttpClientResponse.schemaBodyJson(CursorDownloadObject)(
+  const { downloadUrl, version: newVersion } = yield* Effect.retry(
+    HttpClientResponse.schemaBodyJson(CursorDownloadObject)(
       downloadUrlResponse
-    );
+    ),
+    {
+      times: 3,
+      schedule: Schedule.exponential(1000),
+    }
+  );
 
-  const currentVersion = yield* getCurrentCursorVersion;
+  const currentVersion = yield* Effect.orElse(getCurrentCursorVersion, () =>
+    Effect.succeed(undefined)
+  );
 
   if (currentVersion && currentVersion === newVersion) {
-    return yield* Effect.fail(new Error("No new version found"));
+    return yield* Effect.fail(
+      new NoNewVersionError({
+        currentVersion,
+        newVersion,
+      })
+    );
   }
 
   const appimageResponse = yield* httpCLient.get(downloadUrl);
@@ -102,7 +112,7 @@ const downloadCursor = Effect.gen(function* () {
 
 const getCurrentCursorVersion = Effect.gen(function* () {
   if (!homeDirectory) {
-    return yield* Effect.fail(new Error("bruh"));
+    return yield* Effect.fail(new HomeDirectoryNotFoundError());
   }
 
   const fs = yield* FileSystem.FileSystem;

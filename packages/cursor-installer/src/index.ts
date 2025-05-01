@@ -8,7 +8,7 @@ import { installCursor } from "./helpers";
 
 const main = Effect.gen(function* () {
   yield* installCursor;
-});
+}).pipe(Effect.catchAll((error) => Effect.succeed(console.log(error.message))));
 
 BunRuntime.runMain(
   main.pipe(
