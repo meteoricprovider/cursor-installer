@@ -6,7 +6,6 @@ import { CursorDownloadObject } from "./schemas";
 import { cursorIcon, HOME_DIRECTORY, SHELL } from "./consts";
 import {
 	HomeDirectoryNotFoundError,
-	NoNewVersionError,
 	OperationCancelledError,
 	ShellConfigFileNotFoundError,
 	ShellNotFoundError,
@@ -54,17 +53,17 @@ Version=${version}
 `,
 	);
 
-	// Add to PATH
-	const shouldAddToPath = yield* Effect.orElse(
+	// Add alias to shell config file
+	const shouldAddAlias = yield* Effect.orElse(
 		Effect.promise(() =>
 			confirm({
-				message: "Do you want to add Cursor to your PATH?",
+				message: "Do you want to add a Cursor alias to your shell?",
 			}),
 		),
 		() => Effect.succeed(false),
 	);
 
-	if (!shouldAddToPath || isCancel(shouldAddToPath)) {
+	if (!shouldAddAlias || isCancel(shouldAddAlias)) {
 		return;
 	}
 
@@ -85,8 +84,12 @@ Version=${version}
 
 	const shellConfigFileContent = yield* fs.readFileString(shellConfigFile);
 
-	if (shellConfigFileContent.includes(`${HOME_DIRECTORY}/bin/cursor`)) {
-		log.warn("Cursor already exists in your PATH.");
+	if (
+		shellConfigFileContent.includes(
+			`${HOME_DIRECTORY}/bin/cursor/cursor.appimage`,
+		)
+	) {
+		log.warn("Cursor alias already exists.");
 
 		return;
 	}
@@ -102,11 +105,11 @@ Version=${version}
 		yield* fs.writeFileString(
 			`${HOME_DIRECTORY}/.bashrc`,
 			shellConfigFileContent.concat(
-				`\n\n# Cursor\nexport PATH="${HOME_DIRECTORY}/bin/cursor:$PATH"`,
+				`\n\n# Cursor\nalias cursor="${HOME_DIRECTORY}/bin/cursor/cursor.appimage"`,
 			),
 		);
 
-		log.success("Cursor added to PATH. Make sure to restart your shell.");
+		log.success("Cursor alias added. Make sure to restart your shell.");
 	}
 
 	if (SHELL.includes("zsh")) {
@@ -120,11 +123,11 @@ Version=${version}
 		yield* fs.writeFileString(
 			`${HOME_DIRECTORY}/.zshrc`,
 			shellConfigFileContent.concat(
-				`\n\n# Cursor\nexport PATH="${HOME_DIRECTORY}/bin/cursor:$PATH"`,
+				`\n\n# Cursor\nalias cursor="${HOME_DIRECTORY}/bin/cursor/cursor.appimage"`,
 			),
 		);
 
-		log.success("Cursor added to PATH. Make sure to restart your shell.");
+		log.success("Cursor alias added. Make sure to restart your shell.");
 	}
 });
 
@@ -132,9 +135,9 @@ const downloadCursor = Effect.gen(function* () {
 	const httpCLient = yield* HttpClient.HttpClient;
 	const fs = yield* FileSystem.FileSystem;
 
-	const s = spinner({ indicator: "dots" });
+	const downloadUrlSpinner = spinner({ indicator: "dots" });
 
-	s.start("Checking for new version of Cursor...");
+	downloadUrlSpinner.start("Checking for new version of Cursor...");
 
 	const downloadUrlResponse = yield* Effect.retry(
 		httpCLient.get(
@@ -156,22 +159,15 @@ const downloadCursor = Effect.gen(function* () {
 	);
 
 	if (currentVersion && currentVersion === newVersion) {
-		s.stop("No new version available");
-
-		return yield* Effect.fail(
-			new NoNewVersionError({
-				currentVersion,
-				newVersion,
-			}),
-		);
+		downloadUrlSpinner.stop(`Cursor is up to date: ${currentVersion}`);
+	} else {
+		downloadUrlSpinner.stop(`New version available: ${newVersion}`);
 	}
-
-	s.stop(`New version available: ${newVersion}`);
 
 	const shouldDownload = yield* Effect.orElse(
 		Effect.promise(() =>
 			confirm({
-				message: "Do you want to install it?",
+				message: "Do you want to install?",
 			}),
 		),
 		() => Effect.fail(new OperationCancelledError()),
@@ -189,7 +185,9 @@ const downloadCursor = Effect.gen(function* () {
 
 	const contentLength = appimageResponse.headers["content-length"];
 
-	s.start("Downloading Cursor...");
+	const downloadAppimageSpinner = spinner({ indicator: "timer" });
+
+	downloadAppimageSpinner.start("Downloading Cursor...");
 
 	yield* Stream.run(
 		appimageStream.pipe(
@@ -200,13 +198,13 @@ const downloadCursor = Effect.gen(function* () {
 					(currentLength / Number(contentLength as string)) * 100
 				).toFixed(0)}%`;
 
-				return Effect.succeed(s.message(percentage));
+				return Effect.succeed(downloadAppimageSpinner.message(percentage));
 			}),
 		),
 		fs.sink("/tmp/cursor.appimage"),
 	);
 
-	s.stop("Downloaded Cursor");
+	downloadAppimageSpinner.stop("Downloaded Cursor");
 
 	return newVersion;
 });
