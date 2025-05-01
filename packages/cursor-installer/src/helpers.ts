@@ -76,12 +76,12 @@ const downloadCursor = Effect.gen(function* () {
   );
 
   if (currentVersion && currentVersion === newVersion) {
-    // return yield* Effect.fail(
-    //   new NoNewVersionError({
-    //     currentVersion,
-    //     newVersion,
-    //   })
-    // );
+    return yield* Effect.fail(
+      new NoNewVersionError({
+        currentVersion,
+        newVersion,
+      })
+    );
   }
 
   const shouldDownload = yield* Effect.orElse(
