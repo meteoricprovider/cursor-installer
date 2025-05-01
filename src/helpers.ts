@@ -86,6 +86,8 @@ Version=${version}
 	const shellConfigFileContent = yield* fs.readFileString(shellConfigFile);
 
 	if (shellConfigFileContent.includes(`${HOME_DIRECTORY}/bin/cursor`)) {
+		log.warn("Cursor already exists in your PATH.");
+
 		return;
 	}
 
@@ -130,15 +132,13 @@ const downloadCursor = Effect.gen(function* () {
 	const httpCLient = yield* HttpClient.HttpClient;
 	const fs = yield* FileSystem.FileSystem;
 
-	log.step("Checking for new version of Cursor...");
+	const s = spinner({ indicator: "dots" });
 
-	const downloadUrlResponse = yield* httpCLient.get(
-		"https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=stable",
-	);
+	s.start("Checking for new version of Cursor...");
 
-	const { downloadUrl, version: newVersion } = yield* Effect.retry(
-		HttpClientResponse.schemaBodyJson(CursorDownloadObject)(
-			downloadUrlResponse,
+	const downloadUrlResponse = yield* Effect.retry(
+		httpCLient.get(
+			"https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=stable",
 		),
 		{
 			times: 3,
@@ -146,23 +146,30 @@ const downloadCursor = Effect.gen(function* () {
 		},
 	);
 
+	const { downloadUrl, version: newVersion } =
+		yield* HttpClientResponse.schemaBodyJson(CursorDownloadObject)(
+			downloadUrlResponse,
+		);
+
 	const currentVersion = yield* Effect.orElse(getCurrentCursorVersion, () =>
 		Effect.succeed(undefined),
 	);
 
 	if (currentVersion && currentVersion === newVersion) {
-		return yield* Effect.fail(
-			new NoNewVersionError({
-				currentVersion,
-				newVersion,
-			}),
-		);
+		// return yield* Effect.fail(
+		// 	new NoNewVersionError({
+		// 		currentVersion,
+		// 		newVersion,
+		// 	}),
+		// );
 	}
+
+	s.stop(`New version available: ${newVersion}`);
 
 	const shouldDownload = yield* Effect.orElse(
 		Effect.promise(() =>
 			confirm({
-				message: `New version available: ${newVersion}. Do you want to install it?`,
+				message: "Do you want to install it?",
 			}),
 		),
 		() => Effect.fail(new OperationCancelledError()),
@@ -179,8 +186,6 @@ const downloadCursor = Effect.gen(function* () {
 	let currentLength = 0;
 
 	const contentLength = appimageResponse.headers["content-length"];
-
-	const s = spinner({ indicator: "timer" });
 
 	s.start("Downloading Cursor...");
 
