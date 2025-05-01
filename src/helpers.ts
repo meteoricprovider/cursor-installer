@@ -2,16 +2,18 @@ import { Effect, Schedule, Stream } from "effect";
 import { HttpClient, HttpClientResponse, FileSystem } from "@effect/platform";
 import { spinner, log, confirm, isCancel } from "@clack/prompts";
 
-import { CursorDownloadObject } from "./schema";
-import { cursorIcon, homeDirectory } from "./consts";
+import { CursorDownloadObject } from "./schemas";
+import { cursorIcon, HOME_DIRECTORY, SHELL } from "./consts";
 import {
   HomeDirectoryNotFoundError,
   NoNewVersionError,
   OperationCancelledError,
+  ShellConfigFileNotFoundError,
+  ShellNotFoundError,
 } from "./errors";
 
 export const installCursor = Effect.gen(function* () {
-  if (!homeDirectory) {
+  if (!HOME_DIRECTORY) {
     return yield* Effect.fail(new HomeDirectoryNotFoundError());
   }
 
@@ -19,7 +21,7 @@ export const installCursor = Effect.gen(function* () {
 
   const version = yield* downloadCursor;
 
-  log.info(`Installing Cursor ${version}...`);
+  log.step(`Installing Cursor ${version}...`);
 
   // Add execute permissions
   yield* fs.chmod("/tmp/cursor.appimage", 0o775);
@@ -27,21 +29,21 @@ export const installCursor = Effect.gen(function* () {
   // Move file to bin
   yield* fs.copy(
     "/tmp/cursor.appimage",
-    `${homeDirectory}/bin/cursor/cursor.appimage`
+    `${HOME_DIRECTORY}/bin/cursor/cursor.appimage`
   );
 
   yield* fs.remove("/tmp/cursor.appimage");
 
-  yield* fs.writeFile(`${homeDirectory}/bin/cursor/cursor.png`, cursorIcon);
+  yield* fs.writeFile(`${HOME_DIRECTORY}/bin/cursor/cursor.png`, cursorIcon);
 
   // Create desktop entry
   yield* fs.writeFileString(
-    `${homeDirectory}/.local/share/applications/cursor.desktop`,
+    `${HOME_DIRECTORY}/.local/share/applications/cursor.desktop`,
     `[Desktop Entry]
 Name=Cursor
 Comment=Better than VSCode
-Exec=${homeDirectory}/bin/cursor/cursor.appimage %F
-Icon=${homeDirectory}/bin/cursor/cursor.png
+Exec=${HOME_DIRECTORY}/bin/cursor/cursor.appimage %F
+Icon=${HOME_DIRECTORY}/bin/cursor/cursor.png
 Type=Application
 Categories=TextEditor;Development;IDE;
 MimeType=application/x-code-workspace;
@@ -51,11 +53,84 @@ Keywords=cursor;
 Version=${version}
 `
   );
+
+  // Add to PATH
+  const shouldAddToPath = yield* Effect.orElse(
+    Effect.promise(() =>
+      confirm({
+        message: `Do you want to add Cursor to your PATH?`,
+      })
+    ),
+    () => Effect.succeed(false)
+  );
+
+  if (!shouldAddToPath || isCancel(shouldAddToPath)) {
+    return;
+  }
+
+  if (!SHELL) {
+    return yield* Effect.fail(new ShellNotFoundError());
+  }
+
+  // Only check for bash and zsh
+  const shellConfigFile = SHELL.includes("bash")
+    ? `${HOME_DIRECTORY}/.bashrc`
+    : SHELL.includes("zsh")
+      ? `${HOME_DIRECTORY}/.zshrc`
+      : undefined;
+
+  if (!shellConfigFile || !fs.exists(shellConfigFile)) {
+    return yield* Effect.fail(new ShellConfigFileNotFoundError());
+  }
+
+  const shellConfigFileContent = yield* fs.readFileString(shellConfigFile);
+
+  if (shellConfigFileContent.includes(`${HOME_DIRECTORY}/bin/cursor`)) {
+    return;
+  }
+
+  if (SHELL.includes("bash")) {
+    // Backup .bashrc
+    yield* fs.copy(
+      `${HOME_DIRECTORY}/.bashrc`,
+      `${HOME_DIRECTORY}/.bashrc.pre-cursor-installer.backup`
+    );
+
+    // Add to end of .bashrc
+    yield* fs.writeFileString(
+      `${HOME_DIRECTORY}/.bashrc`,
+      shellConfigFileContent.concat(
+        `\n\n# Cursor\nexport PATH="${HOME_DIRECTORY}/bin/cursor:$PATH"`
+      )
+    );
+
+    log.success("Cursor added to PATH. Make sure to restart your shell.");
+  }
+
+  if (SHELL.includes("zsh")) {
+    // Backup .zshrc
+    yield* fs.copy(
+      `${HOME_DIRECTORY}/.zshrc`,
+      `${HOME_DIRECTORY}/.zshrc.pre-cursor-installer.backup`
+    );
+
+    // Add to end of .zshrc
+    yield* fs.writeFileString(
+      `${HOME_DIRECTORY}/.zshrc`,
+      shellConfigFileContent.concat(
+        `\n\n# Cursor\nexport PATH="${HOME_DIRECTORY}/bin/cursor:$PATH"`
+      )
+    );
+
+    log.success("Cursor added to PATH. Make sure to restart your shell.");
+  }
 });
 
 const downloadCursor = Effect.gen(function* () {
   const httpCLient = yield* HttpClient.HttpClient;
   const fs = yield* FileSystem.FileSystem;
+
+  log.step("Checking for new version of Cursor...");
 
   const downloadUrlResponse = yield* httpCLient.get(
     "https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=stable"
@@ -133,14 +208,14 @@ const downloadCursor = Effect.gen(function* () {
 });
 
 const getCurrentCursorVersion = Effect.gen(function* () {
-  if (!homeDirectory) {
+  if (!HOME_DIRECTORY) {
     return yield* Effect.fail(new HomeDirectoryNotFoundError());
   }
 
   const fs = yield* FileSystem.FileSystem;
 
   const desktopFile = yield* fs.readFileString(
-    `${homeDirectory}/.local/share/applications/cursor.desktop`
+    `${HOME_DIRECTORY}/.local/share/applications/cursor.desktop`
   );
 
   const desktopFileLines = desktopFile.split("\n");

@@ -8,7 +8,7 @@ import { intro, log } from "@clack/prompts";
 import { installCursor } from "./helpers";
 
 const main = Effect.gen(function* () {
-  intro("cursor-installer");
+  intro("Cursor Installer");
 
   yield* installCursor;
 

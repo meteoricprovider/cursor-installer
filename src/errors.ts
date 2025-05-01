@@ -1,4 +1,5 @@
 import { Data } from "effect";
+import { SHELL } from "./consts";
 
 export class NoNewVersionError extends Data.TaggedError("NoNewVersionError")<{
   message: string;
@@ -37,5 +38,23 @@ export class OperationCancelledError extends Data.TaggedError(
 }> {
   constructor() {
     super({ message: "Operation cancelled." });
+  }
+}
+
+export class ShellNotFoundError extends Data.TaggedError("ShellNotFoundError")<{
+  message: string;
+}> {
+  constructor() {
+    super({ message: "$SHELL not found." });
+  }
+}
+
+export class ShellConfigFileNotFoundError extends Data.TaggedError(
+  "ShellConfigFileNotFoundError"
+)<{
+  message: string;
+}> {
+  constructor() {
+    super({ message: `Shell config file for ${SHELL} not found.` });
   }
 }

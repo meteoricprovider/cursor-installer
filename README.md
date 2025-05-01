@@ -1,22 +1,46 @@
-# utility-scripts
+# cursor-installer
 
-A collection of utility scripts packaged as separate NPM modules.
+A utility script to automatically download and install the latest version of the [Cursor](https://cursor.com/) editor on Linux.
 
-## Overview
+## Features
 
-This monorepo contains various utility scripts implemented as standalone NPM packages to help with different developer tasks.
+- Automatically downloads the latest version of Cursor for Linux
+- Creates desktop entry for easy access
+- Skips download if the latest version is already installed
+- Handles all necessary file permissions
 
-## Packages
+## Usage
 
-- [cursor-installer](./packages/cursor-installer/README.md): A utility to automatically download and install the latest version of the Cursor editor on Linux.
+Simply run:
 
-## Development
+```bash
+bunx cursor-installer
+```
 
-This project uses [Bun](https://bun.sh/) as the JavaScript runtime and package manager.
+or:
 
-### Prerequisites
+```bash
+npx cursor-installer
+```
 
-- Bun 1.2.10 or higher
+The script will:
+
+1. Check if you already have the latest version installed
+2. Download the latest version if needed
+3. Set up the proper file permissions
+4. Create a desktop entry so you can find Cursor in your applications menu
+
+## Requirements
+
+- Linux operating system
+- Bun runtime (^1.2.10)
+
+## Dependencies
+
+- [Typescript](https://www.typescriptlang.org/)
+- [Bun](https://bun.sh/)
+- [Effect](https://effect.website/)
+- [Clack](https://github.com/bombshell-dev/clack)
 
 ## License
 

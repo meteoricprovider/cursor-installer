@@ -1,6 +1,7 @@
-export const homeDirectory = process.env["HOME"];
+export const HOME_DIRECTORY = process.env["HOME"];
+export const SHELL = process.env["SHELL"];
 
-const cursorIconBase64 = `iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAAAAADmVT4XAAAKtUlEQVR42u1aa5AU1RU+596e2Qcs
+const CURSOR_ICON_BASE64 = `iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAAAAADmVT4XAAAKtUlEQVR42u1aa5AU1RU+596e2Qcs
 u+yyrC5EUIIivqKyYkw0iNE8Kim11JQYTSpaVlIaXzFYpVSsEl8xvqNooqFiRYMvJGrKRyiNGkGF
 GAklgiAECBAg7M6y75npe8/J3MduZ9gFmZ7d5c98/Zru3unvu98959zunYYSSiihhBJKKKGEEooC
 SikEQjEQUBR4TAPCgQEaVJ435+RjRyEeCBFCyOD0m++fPaXpa1PLEHHYu4BhytXn1nbvVq3q4OkT
@@ -51,4 +52,4 @@ j+1IJN2XM7KiPHz5wvvaYFghaq949uWFz7+4cu3H6zYsnCFhuIEyOPzmF17408o169/+USAFDDsw
 h9PuXbhi2c2jRQ5wQCAS5982tThuLNIFQCSCEkoooYQSSiihhBKKwP8AAhJFOJcXZdYAAAAASUVO
 RK5CYII=`;
 
-export const cursorIcon = Buffer.from(cursorIconBase64, "base64");
+export const cursorIcon = Buffer.from(CURSOR_ICON_BASE64, "base64");
