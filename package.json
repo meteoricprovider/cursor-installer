@@ -22,17 +22,17 @@
 		"dev": "bun run ./src/main.ts"
 	},
 	"dependencies": {
-		"@clack/core": "0.4.2",
-		"@clack/prompts": "0.10.1",
-		"@effect/platform": "0.80.14",
-		"@effect/platform-bun": "0.61.2",
-		"effect": "3.14.14"
+		"@clack/core": "^0.4.2",
+		"@clack/prompts": "^0.10.1",
+		"@effect/platform": "^0.80.18",
+		"@effect/platform-bun": "^0.61.6",
+		"effect": "^3.14.18"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "1.9.4",
-		"@types/bun": "1.2.10"
+		"@biomejs/biome": "^1.9.4",
+		"@types/bun": "^1.2.10"
 	},
 	"peerDependencies": {
-		"typescript": "5.8.3"
+		"typescript": "^5.8.3"
 	}
 }
