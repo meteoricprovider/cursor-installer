@@ -1,9 +1,9 @@
 import { Schema } from "effect";
 
 export class CursorDownloadObject extends Schema.Class<CursorDownloadObject>(
-  "CursorDownloadObject"
+	"CursorDownloadObject",
 )({
-  version: Schema.String,
-  downloadUrl: Schema.String,
-  rehUrl: Schema.String,
+	version: Schema.String,
+	downloadUrl: Schema.String,
+	rehUrl: Schema.String,
 }) {}

@@ -8,17 +8,17 @@ import { intro, log } from "@clack/prompts";
 import { installCursor } from "./helpers";
 
 const main = Effect.gen(function* () {
-  intro("Cursor Installer");
+	intro("Cursor Installer");
 
-  yield* installCursor;
+	yield* installCursor;
 
-  log.success("Cursor installed successfully!");
+	log.success("Cursor installed successfully!");
 });
 
 BunRuntime.runMain(
-  main.pipe(
-    Effect.provide(FetchHttpClient.layer),
-    Effect.provide(BunFileSystem.layer),
-    Effect.catchAll((error) => Effect.succeed(log.error(error.message)))
-  )
+	main.pipe(
+		Effect.provide(FetchHttpClient.layer),
+		Effect.provide(BunFileSystem.layer),
+		Effect.catchAll((error) => Effect.succeed(log.error(error.message))),
+	),
 );

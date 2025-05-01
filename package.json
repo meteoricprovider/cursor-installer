@@ -1,39 +1,35 @@
 {
-  "name": "cursor-installer",
-  "description": "Utility script to install or update Cursor on Linux",
-  "keywords": [
-    "cursor",
-    "installer",
-    "update",
-    "install",
-    "linux"
-  ],
-  "version": "0.4.0",
-  "author": "meteoricprovider",
-  "license": "MIT",
-  "repository": "https://github.com/meteoricprovider/cursor-installer",
-  "private": false,
-  "type": "module",
-  "main": "src/index.ts",
-  "engines": {
-    "bun": "^1.2.10"
-  },
-  "bin": "./src/index.ts",
-  "scripts": {
-    "dev": "bun run ./src/index.ts"
-  },
-  "dependencies": {
-    "@clack/core": "0.4.2",
-    "@clack/prompts": "0.10.1",
-    "@effect/platform": "0.80.14",
-    "@effect/platform-bun": "0.61.2",
-    "effect": "3.14.14"
-  },
-  "devDependencies": {
-    "@types/bun": "1.2.10",
-    "prettier": "3.5.3"
-  },
-  "peerDependencies": {
-    "typescript": "5.8.3"
-  }
+	"name": "cursor-installer",
+	"description": "Utility script to install or update Cursor on Linux",
+	"keywords": ["cursor", "installer", "update", "install", "linux"],
+	"version": "0.4.0",
+	"author": "meteoricprovider",
+	"license": "MIT",
+	"repository": "https://github.com/meteoricprovider/cursor-installer",
+	"private": false,
+	"type": "module",
+	"main": "src/index.ts",
+	"engines": {
+		"bun": "^1.2.10"
+	},
+	"bin": "./src/main.ts",
+	"scripts": {
+		"biome:format": "biome format --write ./src",
+		"biome:lint": "biome lint ./src",
+		"dev": "bun run ./src/main.ts"
+	},
+	"dependencies": {
+		"@clack/core": "0.4.2",
+		"@clack/prompts": "0.10.1",
+		"@effect/platform": "0.80.14",
+		"@effect/platform-bun": "0.61.2",
+		"effect": "3.14.14"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "1.9.4",
+		"@types/bun": "1.2.10"
+	},
+	"peerDependencies": {
+		"typescript": "5.8.3"
+	}
 }
