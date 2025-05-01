@@ -14,6 +14,12 @@ A utility script to automatically download and install the latest version of the
 Simply run:
 
 ```bash
+bunx cursor-installer
+```
+
+or:
+
+```bash
 npx cursor-installer
 ```
 
@@ -28,7 +34,6 @@ The script will:
 
 - Linux operating system
 - Bun runtime (^1.2.10)
-- Home directory with write permissions
 
 ## Development
 
@@ -36,7 +41,7 @@ To develop or modify this package:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/utility-scripts.git
+git clone https://github.com/meteoricprovider/utility-scripts.git
 cd utility-scripts
 
 # Install dependencies
@@ -49,10 +54,11 @@ bun run dev
 
 ## Dependencies
 
-- [@effect/platform](https://github.com/Effect-TS/platform)
-- [@effect/platform-bun](https://github.com/Effect-TS/platform)
-- [effect](https://github.com/Effect-TS/effect)
+- [Typescript](https://www.typescriptlang.org/)
+- [Bun](https://bun.sh/)
+- [Effect](https://effect.website/)
+- [Clack](https://github.com/bombshell-dev/clack)
 
 ## License
 
-MIT (or other applicable license)
+MIT

@@ -22,13 +22,23 @@ This project uses [Bun](https://bun.sh/) as the JavaScript runtime and package m
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/utility-scripts.git
+git clone https://github.com/meteoricprovider/utility-scripts.git
 cd utility-scripts
 
 # Install dependencies
 bun install
 ```
 
+### Development Workflow
+
+Each package is contained in the `packages/` directory and can be worked on independently.
+
+```bash
+# Run a specific package in development mode
+cd packages/cursor-installer
+bun run dev
+```
+
 ## License
 
-MIT (or other applicable license)
+MIT
