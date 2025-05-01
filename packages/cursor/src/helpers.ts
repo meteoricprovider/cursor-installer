@@ -1,13 +1,51 @@
-import { Console, Effect, Schema, Stream } from "effect";
+import { Console, Effect, Stream } from "effect";
 import { HttpClient, HttpClientResponse, FileSystem } from "@effect/platform";
 
-class CursorDownloadObject extends Schema.Class<CursorDownloadObject>(
-  "CursorDownloadObject"
-)({
-  version: Schema.String,
-  downloadUrl: Schema.String,
-  rehUrl: Schema.String,
-}) {}
+import { CursorDownloadObject } from "./schema";
+import { cursorIcon, homeDirectory } from "./consts";
+
+export const installCursor = Effect.gen(function* () {
+  if (!homeDirectory) {
+    return yield* Effect.fail(new Error("bruh"));
+  }
+
+  const fs = yield* FileSystem.FileSystem;
+
+  const version = yield* downloadCursor;
+
+  // Add execute permissions
+  yield* fs.chmod("/tmp/cursor.appimage", 0o775);
+
+  // Move file to bin
+  yield* fs.copy(
+    "/tmp/cursor.appimage",
+    `${homeDirectory}/bin/cursor/cursor.appimage`,
+    {
+      overwrite: true,
+    }
+  );
+
+  yield* fs.remove("/tmp/cursor.appimage");
+
+  yield* fs.writeFile(`${homeDirectory}/bin/cursor/cursor.png`, cursorIcon);
+
+  // Create desktop entry
+  yield* fs.writeFileString(
+    `${homeDirectory}/.local/share/applications/cursor.desktop`,
+    `[Meta]
+Version=${version}
+  
+[Desktop Entry]
+Name=Cursor
+Comment=Better than VSCode
+Exec=${homeDirectory}/bin/cursor/cursor.appimage %F
+Icon=${homeDirectory}/bin/cursor/cursor.png
+Type=Application
+Categories=TextEditor;Development;IDE;
+MimeType=application/x-code-workspace;
+Keywords=cursor;`
+  );
+});
 
 const downloadCursor = Effect.gen(function* () {
   const httpCLient = yield* HttpClient.HttpClient;
@@ -17,25 +55,29 @@ const downloadCursor = Effect.gen(function* () {
     "https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=stable"
   );
 
-  const { downloadUrl } =
+  const { downloadUrl, version: newVersion } =
     yield* HttpClientResponse.schemaBodyJson(CursorDownloadObject)(
       downloadUrlResponse
     );
 
-  console.log(downloadUrl);
+  const currentVersion = yield* getCurrentCursorVersion;
 
-  const appImageResponse = yield* httpCLient.get(downloadUrl);
+  if (currentVersion && currentVersion === newVersion) {
+    return yield* Effect.fail(new Error("No new version found"));
+  }
 
-  const contentLength = appImageResponse.headers["content-length"];
+  const appimageResponse = yield* httpCLient.get(downloadUrl);
 
-  const appImageStream = appImageResponse.stream;
+  const contentLength = appimageResponse.headers["content-length"];
+
+  const appimageStream = appimageResponse.stream;
 
   const sink = fs.sink("/tmp/cursor.appimage");
 
   let currentLength = 0;
 
   yield* Stream.run(
-    appImageStream.pipe(
+    appimageStream.pipe(
       Stream.tap((chunk) =>
         Effect.gen(function* () {
           yield* Console.clear;
@@ -53,55 +95,28 @@ const downloadCursor = Effect.gen(function* () {
     ),
     sink
   );
+
+  return newVersion;
 });
 
-export const installCursor = Effect.gen(function* () {
-  const httpCLient = yield* HttpClient.HttpClient;
-
-  const fs = yield* FileSystem.FileSystem;
-
-  yield* downloadCursor;
-
-  // Add execute permissions
-  yield* fs.chmod("/tmp/cursor.appimage", 0o775);
-
-  // Move files to opt
-  const homeDirectory = process.env["HOME"];
-
+const getCurrentCursorVersion = Effect.gen(function* () {
   if (!homeDirectory) {
     return yield* Effect.fail(new Error("bruh"));
   }
 
-  yield* fs.copy(
-    "/tmp/cursor.appimage",
-    `${homeDirectory}/bin/cursor/cursor.appimage`,
-    {
-      overwrite: true,
-    }
+  const fs = yield* FileSystem.FileSystem;
+
+  const desktopFile = yield* fs.readFileString(
+    `${homeDirectory}/.local/share/applications/cursor.desktop`
   );
 
-  yield* fs.remove("/tmp/cursor.appimage");
+  const desktopFileLines = desktopFile.split("\n");
 
-  const appIconResponse = yield* httpCLient.get(
-    "https://us1.discourse-cdn.com/flex020/uploads/cursor1/original/2X/f/f7bc157cca4b97c3f0fc83c3c1a7094871a268df.png"
+  const versionLine = desktopFileLines.find((line) =>
+    line.startsWith("Version=")
   );
 
-  const arrayBuffer = yield* appIconResponse.arrayBuffer;
+  const oldVersion = versionLine?.split("=")[1];
 
-  yield* fs.writeFile(
-    `${homeDirectory}/bin/cursor/cursor.png`,
-    Buffer.from(arrayBuffer)
-  );
-
-  // Create desktop entry
-  yield* fs.writeFileString(
-    `${homeDirectory}/.local/share/applications/cursor.desktop`,
-    `[Desktop Entry]
-  Name=Cursor
-  Exec=${homeDirectory}/bin/cursor/cursor.appimage
-  Icon=${homeDirectory}/bin/cursor/cursor.png
-  Type=Application
-  Comment=Better than VSCode
-  Categories=Development;`
-  );
+  return oldVersion;
 });
