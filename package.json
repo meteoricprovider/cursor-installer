@@ -2,10 +2,13 @@
 	"name": "cursor-installer",
 	"description": "Utility script to install or update Cursor on Linux",
 	"keywords": ["cursor", "installer", "update", "install", "linux"],
-	"version": "0.4.0",
+	"version": "0.4.1",
 	"author": "meteoricprovider",
 	"license": "MIT",
-	"repository": "https://github.com/meteoricprovider/cursor-installer",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/meteoricprovider/cursor-installer"
+	},
 	"private": false,
 	"type": "module",
 	"main": "src/index.ts",
