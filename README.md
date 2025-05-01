@@ -14,13 +14,7 @@ A utility script to automatically download and install the latest version of the
 Simply run:
 
 ```bash
-bunx cursor-installer
-```
-
-or:
-
-```bash
-npx cursor-installer
+npx cursor-installer@latest
 ```
 
 The script will:
