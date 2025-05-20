@@ -26,10 +26,10 @@ export const installCursor = Effect.gen(function* () {
 	yield* fs.chmod("/tmp/cursor.appimage", 0o775);
 
 	// Backup existing cursor appimage if it exists
-	if (fs.exists(`${HOME_DIRECTORY}/bin/cursor/cursor.appimage`)) {
+	if (yield* fs.exists(`${HOME_DIRECTORY}/bin/cursor/cursor.appimage`)) {
 		yield* fs.copy(
 			`${HOME_DIRECTORY}/bin/cursor/cursor.appimage`,
-			`${HOME_DIRECTORY}/bin/cursor/cursor.pre-${version}.backup.appimage`,
+			`${HOME_DIRECTORY}/bin/cursor/cursor-pre-install-backup.appimage`,
 		);
 
 		log.info(
@@ -178,7 +178,9 @@ const downloadCursor = Effect.gen(function* () {
 		Effect.succeed(undefined),
 	);
 
-	if (currentVersion && currentVersion === newVersion) {
+	const isCursorInstalled = yield* fs.exists(`${HOME_DIRECTORY}/bin/cursor/cursor.appimage`);
+
+	if (isCursorInstalled && currentVersion && currentVersion === newVersion) {
 		downloadUrlSpinner.stop(`Cursor is up to date: ${currentVersion}`);
 	} else {
 		downloadUrlSpinner.stop(`New version available: ${newVersion}`);
