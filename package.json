@@ -2,7 +2,7 @@
 	"name": "cursor-installer",
 	"description": "Utility script to install or update Cursor on Linux",
 	"keywords": ["cursor", "installer", "update", "install", "linux"],
-	"version": "0.4.4",
+	"version": "0.5.0",
 	"author": "meteoricprovider",
 	"license": "MIT",
 	"repository": {

@@ -23,7 +23,7 @@ The script will:
 2. Download the latest version if needed
 3. Set up the proper file permissions
 4. Create a desktop entry so you can find Cursor in your applications menu
-5. Add Cursor to PATH if needed
+5. Add Cursor as an alias if needed
 
 ## Requirements
 
