@@ -1,8 +1,7 @@
+import { confirm, isCancel, log, spinner } from "@clack/prompts";
+import { FileSystem, HttpClient, HttpClientResponse } from "@effect/platform";
 import { Effect, Schedule, Stream } from "effect";
-import { HttpClient, HttpClientResponse, FileSystem } from "@effect/platform";
-import { spinner, log, confirm, isCancel } from "@clack/prompts";
 
-import { CursorDownloadObject } from "./schemas";
 import { cursorIcon, HOME_DIRECTORY, SHELL } from "./consts";
 import {
 	HomeDirectoryNotFoundError,
@@ -10,6 +9,7 @@ import {
 	ShellConfigFileNotFoundError,
 	ShellNotFoundError,
 } from "./errors";
+import { CursorDownloadObject } from "./schemas";
 
 export const installCursor = Effect.gen(function* () {
 	if (!HOME_DIRECTORY) {

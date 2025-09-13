@@ -1,4 +1,5 @@
 import { Data } from "effect";
+
 import { SHELL } from "./consts";
 
 export class HomeDirectoryNotFoundError extends Data.TaggedError(

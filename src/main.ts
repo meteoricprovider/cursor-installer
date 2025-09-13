@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 
-import { Effect } from "effect";
-import { FetchHttpClient } from "@effect/platform";
-import { BunRuntime, BunFileSystem } from "@effect/platform-bun";
 import { intro, log } from "@clack/prompts";
+import { FetchHttpClient } from "@effect/platform";
+import { BunFileSystem, BunRuntime } from "@effect/platform-bun";
+import { Effect } from "effect";
 
 import { installCursor } from "./helpers";
 
