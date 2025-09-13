@@ -5,7 +5,7 @@ import { FetchHttpClient } from "@effect/platform";
 import { BunFileSystem, BunRuntime } from "@effect/platform-bun";
 import { Effect } from "effect";
 
-import { installCursor } from "./helpers";
+import { installCursor } from "./installCursor";
 
 const main = Effect.gen(function* () {
 	intro("Cursor Installer");
