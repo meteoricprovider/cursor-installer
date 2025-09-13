@@ -178,7 +178,9 @@ const downloadCursor = Effect.gen(function* () {
 		Effect.succeed(undefined),
 	);
 
-	const isCursorInstalled = yield* fs.exists(`${HOME_DIRECTORY}/bin/cursor/cursor.appimage`);
+	const isCursorInstalled = yield* fs.exists(
+		`${HOME_DIRECTORY}/bin/cursor/cursor.appimage`,
+	);
 
 	if (isCursorInstalled && currentVersion && currentVersion === newVersion) {
 		downloadUrlSpinner.stop(`Cursor is up to date: ${currentVersion}`);

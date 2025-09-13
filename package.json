@@ -17,8 +17,8 @@
 	},
 	"bin": "./src/main.ts",
 	"scripts": {
-		"biome:format": "biome format --write ./src",
-		"biome:lint": "biome lint ./src",
+		"format": "biome format --write ./src",
+		"lint": "biome lint ./src",
 		"dev": "bun run ./src/main.ts"
 	},
 	"dependencies": {
