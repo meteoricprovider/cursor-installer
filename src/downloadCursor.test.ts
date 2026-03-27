@@ -71,8 +71,7 @@ describe("downloadCursor", () => {
 		const httpLayer = createTestHttpClient({ version: currentVersion });
 		const { layer: fsLayer } = createTestFileSystem({
 			[`${process.env["HOME"]}/bin/cursor/cursor.appimage`]: "existing",
-			[`${process.env["HOME"]}/.local/share/applications/cursor.desktop`]:
-				`[Meta]\nVersion=${currentVersion}\n`,
+			[`${process.env["HOME"]}/.local/share/applications/cursor.desktop`]: `[Meta]\nVersion=${currentVersion}\n`,
 		});
 
 		const testLayer = Layer.mergeAll(cliLayer, httpLayer, fsLayer);

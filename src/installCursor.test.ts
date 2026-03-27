@@ -21,9 +21,7 @@ describe("installCursor", () => {
 
 		const testLayer = Layer.mergeAll(cliLayer, httpLayer, fsLayer);
 
-		await Effect.runPromise(
-			installCursor.pipe(Effect.provide(testLayer)),
-		);
+		await Effect.runPromise(installCursor.pipe(Effect.provide(testLayer)));
 
 		// Desktop entry was written
 		const desktopEntry = files.get(
@@ -32,9 +30,7 @@ describe("installCursor", () => {
 		expect(desktopEntry).toBeDefined();
 		expect(desktopEntry).toContain("Version=1.0.0");
 		expect(desktopEntry).toContain("Name=Cursor");
-		expect(desktopEntry).toContain(
-			`Exec=${HOME}/bin/cursor/cursor.appimage`,
-		);
+		expect(desktopEntry).toContain(`Exec=${HOME}/bin/cursor/cursor.appimage`);
 	});
 
 	test("backs up existing appimage with version in filename", async () => {
@@ -48,9 +44,7 @@ describe("installCursor", () => {
 
 		const testLayer = Layer.mergeAll(cliLayer, httpLayer, fsLayer);
 
-		await Effect.runPromise(
-			installCursor.pipe(Effect.provide(testLayer)),
-		);
+		await Effect.runPromise(installCursor.pipe(Effect.provide(testLayer)));
 
 		// Backup was created with version in filename
 		const backup = files.get(
@@ -60,9 +54,7 @@ describe("installCursor", () => {
 
 		// Log message matches the actual backup filename
 		const infoLog = logs.find((l) => l.level === "info");
-		expect(infoLog?.message).toContain(
-			"cursor-pre-2.0.0-backup.appimage",
-		);
+		expect(infoLog?.message).toContain("cursor-pre-2.0.0-backup.appimage");
 	});
 
 	test("fails with ShellConfigFileNotFoundError when shell config does not exist", async () => {
@@ -98,9 +90,7 @@ describe("installCursor", () => {
 
 		const testLayer = Layer.mergeAll(cliLayer, httpLayer, fsLayer);
 
-		await Effect.runPromise(
-			installCursor.pipe(Effect.provide(testLayer)),
-		);
+		await Effect.runPromise(installCursor.pipe(Effect.provide(testLayer)));
 
 		const updatedConfig = files.get(shellConfigPath);
 		expect(updatedConfig).toContain("alias cursor=");
@@ -124,9 +114,7 @@ describe("installCursor", () => {
 
 		const testLayer = Layer.mergeAll(cliLayer, httpLayer, fsLayer);
 
-		await Effect.runPromise(
-			installCursor.pipe(Effect.provide(testLayer)),
-		);
+		await Effect.runPromise(installCursor.pipe(Effect.provide(testLayer)));
 
 		// Config unchanged — alias was already present
 		expect(files.get(shellConfigPath)).toBe(existingConfig);

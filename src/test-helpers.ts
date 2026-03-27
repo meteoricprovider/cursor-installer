@@ -1,13 +1,16 @@
-import { FileSystem, HttpClient, HttpClientResponse } from "@effect/platform";
+import {
+	FileSystem,
+	HttpClient,
+	HttpClientResponse,
+	Error as PlatformError,
+} from "@effect/platform";
 import { Effect, Layer, Sink } from "effect";
 
-import { type Spinner, CliUI } from "./CliUI";
+import { CliUI, type Spinner } from "./CliUI";
 
 // --- Mock CliUI ---
 
-export const createTestCliUI = (options?: {
-	confirmResponses?: boolean[];
-}) => {
+export const createTestCliUI = (options?: { confirmResponses?: boolean[] }) => {
 	let confirmIndex = 0;
 	const logs: Array<{ level: string; message: string }> = [];
 
@@ -20,8 +23,7 @@ export const createTestCliUI = (options?: {
 	const layer = Layer.succeed(CliUI, {
 		intro: () => {},
 		confirm: () => {
-			const response =
-				options?.confirmResponses?.[confirmIndex] ?? true;
+			const response = options?.confirmResponses?.[confirmIndex] ?? true;
 			confirmIndex++;
 			return Effect.succeed(response);
 		},
@@ -72,18 +74,14 @@ export const createTestHttpClient = (options?: {
 		HttpClient.make((req) => {
 			if (req.url.includes("cursor.com/api/download")) {
 				return Effect.succeed(
-					HttpClientResponse.fromWeb(
-						req,
-						new Response(apiResponseBody),
-					),
+					HttpClientResponse.fromWeb(req, new Response(apiResponseBody)),
 				);
 			}
 
 			const headers: Record<string, string> = {};
 			if (options?.appimageContentLength !== null) {
 				headers["content-length"] =
-					options?.appimageContentLength ??
-					String(appimageBody.length);
+					options?.appimageContentLength ?? String(appimageBody.length);
 			}
 
 			return Effect.succeed(
@@ -98,12 +96,8 @@ export const createTestHttpClient = (options?: {
 
 // --- Mock FileSystem ---
 
-export const createTestFileSystem = (
-	initialFiles?: Record<string, string>,
-) => {
-	const files = new Map<string, string>(
-		Object.entries(initialFiles ?? {}),
-	);
+export const createTestFileSystem = (initialFiles?: Record<string, string>) => {
+	const files = new Map<string, string>(Object.entries(initialFiles ?? {}));
 	const binaryFiles = new Map<string, Uint8Array>();
 
 	const layer = FileSystem.layerNoop({
@@ -112,7 +106,12 @@ export const createTestFileSystem = (
 			const content = files.get(path);
 			if (content === undefined) {
 				return Effect.fail(
-					new (Error as any)({ message: `File not found: ${path}` }),
+					new PlatformError.SystemError({
+						reason: "NotFound",
+						module: "FileSystem",
+						method: "readFileString",
+						description: `File not found: ${path}`,
+					}),
 				);
 			}
 			return Effect.succeed(content);

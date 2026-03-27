@@ -52,10 +52,7 @@ Type=Application
 		const TestFs = FileSystem.layerNoop({});
 
 		const result = await Effect.runPromise(
-			getCurrentCursorVersion.pipe(
-				Effect.provide(TestFs),
-				Effect.either,
-			),
+			getCurrentCursorVersion.pipe(Effect.provide(TestFs), Effect.either),
 		);
 
 		expect(result._tag).toBe("Left");
