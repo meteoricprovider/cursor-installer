@@ -66,11 +66,19 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [lint, typecheck, test, e2e]
+    permissions:
+      contents: read
+      id-token: write
     concurrency:
       group: release
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          registry-url: "https://registry.npmjs.org"
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -93,14 +101,6 @@ jobs:
             echo "should_publish=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Setup npm auth
-        if: steps.version-check.outputs.should_publish == 'true'
-        run: echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > .npmrc
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
       - name: Publish to npm
         if: steps.version-check.outputs.should_publish == 'true'
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance

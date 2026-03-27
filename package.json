@@ -8,12 +8,12 @@
 		"install",
 		"linux"
 	],
-	"version": "0.5.1",
+	"version": "1.0.0",
 	"author": "meteoricprovider",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/meteoricprovider/cursor-installer"
+		"url": "git+https://github.com/meteoricprovider/cursor-installer.git"
 	},
 	"private": false,
 	"type": "module",
@@ -21,8 +21,11 @@
 	"engines": {
 		"bun": "^1.2.21"
 	},
-	"bin": "./src/main.ts",
+	"bin": {
+		"cursor-installer": "src/main.ts"
+	},
 	"scripts": {
+		"prepare": "git config core.hooksPath .githooks",
 		"format": "biome format --write ./src",
 		"lint": "biome lint ./src",
 		"lint:check": "biome check ./src",
