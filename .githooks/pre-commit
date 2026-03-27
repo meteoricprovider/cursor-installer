@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+export PATH="$HOME/.bun/bin:$PATH"
+
+tmp=$(mktemp -d)
+trap 'kill $pid_lint $pid_typecheck $pid_test 2>/dev/null; rm -rf "$tmp"' EXIT
+
+bun run lint:check > "$tmp/lint" 2>&1 &
+pid_lint=$!
+
+bun run typecheck > "$tmp/types" 2>&1 &
+pid_typecheck=$!
+
+bun run test > "$tmp/test" 2>&1 &
+pid_test=$!
+
+fail=0
+wait $pid_lint      || { echo "lint:check failed:";  cat "$tmp/lint";  fail=1; }
+wait $pid_typecheck || { echo "typecheck failed:";    cat "$tmp/types"; fail=1; }
+wait $pid_test      || { echo "test failed:";         cat "$tmp/test";  fail=1; }
+
+exit $fail
