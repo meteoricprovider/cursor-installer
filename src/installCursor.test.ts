@@ -97,7 +97,8 @@ describe("installCursor", () => {
 		await Effect.runPromise(installCursor.pipe(Effect.provide(testLayer)));
 
 		const updatedConfig = files.get(shellConfigPath);
-		expect(updatedConfig).toContain("alias cursor=");
+		expect(updatedConfig).toContain("nohup");
+		expect(updatedConfig).toContain("disown");
 		expect(updatedConfig).toContain("cursor.appimage");
 
 		// Backup was created
@@ -105,8 +106,74 @@ describe("installCursor", () => {
 		expect(files.has(backupPath)).toBe(true);
 	});
 
-	test("skips alias when it already exists in shell config", async () => {
-		const existingConfig = `# config\nalias cursor="${HOME}/bin/cursor/cursor.appimage"\n`;
+	test("removes old binary before copying new one", async () => {
+		const { layer: cliLayer } = createTestCliUI({
+			confirmResponses: [true, false],
+		});
+		const httpLayer = createTestHttpClient({ version: "2.0.0" });
+		const { layer: fsLayer, operations } = createTestFileSystem({
+			[`${HOME}/bin/cursor/cursor.appimage`]: "old-appimage-content",
+		});
+
+		const testLayer = Layer.mergeAll(cliLayer, httpLayer, fsLayer);
+
+		await Effect.runPromise(installCursor.pipe(Effect.provide(testLayer)));
+
+		// Find the remove and copy operations for the appimage path
+		const appImagePath = `${HOME}/bin/cursor/cursor.appimage`;
+		const removeOp = operations.findIndex(
+			(op) => op.op === "remove" && op.path === appImagePath,
+		);
+		const copyOp = operations.findIndex(
+			(op) =>
+				op.op === "copy" &&
+				op.path === appImagePath &&
+				op.from === "/tmp/cursor.appimage",
+		);
+
+		expect(removeOp).toBeGreaterThanOrEqual(0);
+		expect(copyOp).toBeGreaterThanOrEqual(0);
+		// Remove must happen before copy
+		expect(removeOp).toBeLessThan(copyOp);
+	});
+
+	test("restores backup and fails when copy fails", async () => {
+		const appImagePath = `${HOME}/bin/cursor/cursor.appimage`;
+		const { layer: cliLayer } = createTestCliUI({
+			confirmResponses: [true, false],
+		});
+		const httpLayer = createTestHttpClient({ version: "2.0.0" });
+		const { layer: fsLayer, files } = createTestFileSystem(
+			{
+				[appImagePath]: "old-appimage-content",
+			},
+			{ failCopyFrom: "/tmp/cursor.appimage" },
+		);
+
+		const testLayer = Layer.mergeAll(cliLayer, httpLayer, fsLayer);
+
+		const result = await Effect.runPromise(
+			installCursor.pipe(Effect.provide(testLayer), Effect.either),
+		);
+
+		// Should fail with InstallationFailedError
+		expect(result._tag).toBe("Left");
+		if (result._tag === "Left") {
+			expect(result.left._tag).toBe("InstallationFailedError");
+		}
+
+		// Backup should have been restored to the original path
+		expect(files.get(appImagePath)).toBe("old-appimage-content");
+
+		// Desktop entry should NOT have been written
+		expect(files.has(`${HOME}/.local/share/applications/cursor.desktop`)).toBe(
+			false,
+		);
+	});
+
+	test("replaces old-format alias with nohup/disown format", async () => {
+		const oldAlias = `alias cursor="${HOME}/bin/cursor/cursor.appimage"`;
+		const existingConfig = `# config\n${oldAlias}\n`;
 		const { layer: cliLayer, logs } = createTestCliUI({
 			confirmResponses: [true, true],
 		});
@@ -119,7 +186,34 @@ describe("installCursor", () => {
 
 		await Effect.runPromise(installCursor.pipe(Effect.provide(testLayer)));
 
-		// Config unchanged — alias was already present
+		const updatedConfig = files.get(shellConfigPath);
+		// Old alias should be gone
+		expect(updatedConfig).not.toContain(oldAlias);
+		// New alias should be present
+		expect(updatedConfig).toContain("nohup");
+		expect(updatedConfig).toContain("disown");
+
+		// Should log that alias was updated
+		const successLog = logs.find((l) => l.level === "success");
+		expect(successLog?.message).toContain("alias");
+	});
+
+	test("skips alias when new-format alias already exists", async () => {
+		const newAlias = `alias cursor='nohup ${HOME}/bin/cursor/cursor.appimage > /dev/null 2>&1 & disown'`;
+		const existingConfig = `# config\n${newAlias}\n`;
+		const { layer: cliLayer, logs } = createTestCliUI({
+			confirmResponses: [true, true],
+		});
+		const httpLayer = createTestHttpClient({ version: "1.0.0" });
+		const { layer: fsLayer, files } = createTestFileSystem({
+			[shellConfigPath]: existingConfig,
+		});
+
+		const testLayer = Layer.mergeAll(cliLayer, httpLayer, fsLayer);
+
+		await Effect.runPromise(installCursor.pipe(Effect.provide(testLayer)));
+
+		// Config unchanged — new-format alias already present
 		expect(files.get(shellConfigPath)).toBe(existingConfig);
 
 		// Warning was logged

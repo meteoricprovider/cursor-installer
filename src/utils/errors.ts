@@ -30,6 +30,18 @@ export class ShellNotFoundError extends Data.TaggedError("ShellNotFoundError")<{
 	}
 }
 
+export class InstallationFailedError extends Data.TaggedError(
+	"InstallationFailedError",
+)<{
+	message: string;
+}> {
+	constructor() {
+		super({
+			message: "Installation failed, previous version restored.",
+		});
+	}
+}
+
 export class ShellConfigFileNotFoundError extends Data.TaggedError(
 	"ShellConfigFileNotFoundError",
 )<{

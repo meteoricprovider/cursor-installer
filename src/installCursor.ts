@@ -6,6 +6,7 @@ import { downloadCursor } from "./downloadCursor";
 import { cursorIcon, HOME_DIRECTORY, SHELL } from "./utils/consts";
 import {
 	HomeDirectoryNotFoundError,
+	InstallationFailedError,
 	ShellConfigFileNotFoundError,
 	ShellNotFoundError,
 } from "./utils/errors";
@@ -25,22 +26,34 @@ export const installCursor = Effect.gen(function* () {
 	// Add execute permissions
 	yield* fs.chmod("/tmp/cursor.appimage", 0o775);
 
+	const appImagePath = `${HOME_DIRECTORY}/bin/cursor/cursor.appimage`;
+	const backupPath = `${HOME_DIRECTORY}/bin/cursor/cursor-pre-${version}-backup.appimage`;
+
 	// Backup existing cursor appimage if it exists
-	if (yield* fs.exists(`${HOME_DIRECTORY}/bin/cursor/cursor.appimage`)) {
-		yield* fs.copy(
-			`${HOME_DIRECTORY}/bin/cursor/cursor.appimage`,
-			`${HOME_DIRECTORY}/bin/cursor/cursor-pre-${version}-backup.appimage`,
-		);
+	if (yield* fs.exists(appImagePath)) {
+		yield* fs.copy(appImagePath, backupPath);
 
 		ui.log.info(
 			`Current cursor.appimage backed up as cursor-pre-${version}-backup.appimage`,
 		);
 	}
 
-	// Move file to bin
-	yield* fs.copy(
-		"/tmp/cursor.appimage",
-		`${HOME_DIRECTORY}/bin/cursor/cursor.appimage`,
+	// Remove old binary before copying to ensure replacement
+	if (yield* fs.exists(appImagePath)) {
+		yield* fs.remove(appImagePath);
+	}
+
+	// Copy new binary — restore backup on failure
+	yield* fs.copy("/tmp/cursor.appimage", appImagePath).pipe(
+		Effect.catchAll(() =>
+			Effect.gen(function* () {
+				if (yield* fs.exists(backupPath)) {
+					yield* fs.copy(backupPath, appImagePath);
+				}
+				ui.log.error("Installation failed, previous version restored.");
+				return yield* Effect.fail(new InstallationFailedError());
+			}),
+		),
 	);
 
 	yield* fs.remove("/tmp/cursor.appimage");
@@ -91,13 +104,11 @@ Version=${version}
 
 	const shellConfigFileContent = yield* fs.readFileString(shellConfigFile);
 
-	if (
-		shellConfigFileContent.includes(
-			`${HOME_DIRECTORY}/bin/cursor/cursor.appimage`,
-		)
-	) {
-		ui.log.warn("Cursor alias already exists.");
+	const newAlias = `alias cursor='nohup ${HOME_DIRECTORY}/bin/cursor/cursor.appimage > /dev/null 2>&1 & disown'`;
 
+	// New-format alias already present — nothing to do
+	if (shellConfigFileContent.includes(newAlias)) {
+		ui.log.warn("Cursor alias already exists.");
 		return;
 	}
 
@@ -111,12 +122,21 @@ Version=${version}
 		`Current ${shellConfigFile.split("/").pop()} backed up as ${shellConfigFile.split("/").pop()}.pre-cursor-installer-${version}.backup`,
 	);
 
-	// Add alias to shell config
+	// Old-format alias present — replace it
+	const oldAliasPattern = `alias cursor="${HOME_DIRECTORY}/bin/cursor/cursor.appimage"`;
+	if (shellConfigFileContent.includes(oldAliasPattern)) {
+		yield* fs.writeFileString(
+			shellConfigFile,
+			shellConfigFileContent.replace(oldAliasPattern, newAlias),
+		);
+		ui.log.success("Cursor alias updated. Make sure to restart your shell.");
+		return;
+	}
+
+	// No alias — add new one
 	yield* fs.writeFileString(
 		shellConfigFile,
-		shellConfigFileContent.concat(
-			`\n\n# Cursor\nalias cursor="${HOME_DIRECTORY}/bin/cursor/cursor.appimage"`,
-		),
+		shellConfigFileContent.concat(`\n\n# Cursor\n${newAlias}`),
 	);
 
 	ui.log.success("Cursor alias added. Make sure to restart your shell.");

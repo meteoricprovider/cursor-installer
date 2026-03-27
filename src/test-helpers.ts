@@ -96,9 +96,13 @@ export const createTestHttpClient = (options?: {
 
 // --- Mock FileSystem ---
 
-export const createTestFileSystem = (initialFiles?: Record<string, string>) => {
+export const createTestFileSystem = (
+	initialFiles?: Record<string, string>,
+	options?: { failCopyFrom?: string },
+) => {
 	const files = new Map<string, string>(Object.entries(initialFiles ?? {}));
 	const binaryFiles = new Map<string, Uint8Array>();
+	const operations: Array<{ op: string; path: string; from?: string }> = [];
 
 	const layer = FileSystem.layerNoop({
 		exists: (path) => Effect.succeed(files.has(path)),
@@ -127,8 +131,21 @@ export const createTestFileSystem = (initialFiles?: Record<string, string>) => {
 			return Effect.void;
 		},
 		copy: (from, to) => {
+			operations.push({ op: "copy", path: to, from });
+
+			if (options?.failCopyFrom && from === options.failCopyFrom) {
+				return Effect.fail(
+					new PlatformError.SystemError({
+						reason: "Unknown",
+						module: "FileSystem",
+						method: "copy",
+						description: `Simulated copy failure to: ${to}`,
+					}),
+				);
+			}
+
 			const content = files.get(from);
-			
+
 			if (content !== undefined) {
 				files.set(to, content);
 			}
@@ -136,6 +153,7 @@ export const createTestFileSystem = (initialFiles?: Record<string, string>) => {
 			return Effect.void;
 		},
 		remove: (path) => {
+			operations.push({ op: "remove", path });
 			files.delete(path);
 			return Effect.void;
 		},
@@ -143,5 +161,5 @@ export const createTestFileSystem = (initialFiles?: Record<string, string>) => {
 		sink: () => Sink.drain,
 	});
 
-	return { layer, files, binaryFiles };
+	return { layer, files, binaryFiles, operations };
 };
