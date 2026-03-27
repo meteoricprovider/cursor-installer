@@ -49,11 +49,6 @@ echo "PASS: Desktop file version matches API version ($DESKTOP_VERSION)"
 echo "Running cursor --version (this may take a while)..."
 echo "Starting at $(date +%T)"
 
-# Extract AppImage and check for missing shared libraries
-"$APPIMAGE" --appimage-extract >/dev/null 2>&1
-echo "Missing shared libraries (if any):"
-ldd squashfs-root/cursor 2>&1 | grep "not found" || echo "(none)"
-
 CURSOR_OUTPUT=$(timeout 120 "$APPIMAGE" --appimage-extract-and-run --headless --no-sandbox --version 2>&1 || true)
 echo "Finished at $(date +%T)"
 echo "Raw output: '$CURSOR_OUTPUT'"
