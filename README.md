@@ -1,5 +1,7 @@
 # cursor-installer
 
+[![npm](https://img.shields.io/npm/v/cursor-installer)](https://www.npmjs.com/package/cursor-installer)
+
 Downloads and installs the latest [Cursor](https://cursor.com/) editor on Linux.
 
 ## Usage

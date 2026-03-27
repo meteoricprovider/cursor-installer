@@ -3,6 +3,10 @@ set -euo pipefail
 
 echo "=== E2E Test: cursor-installer --yes ==="
 
+# Fetch the latest version from the Cursor API before installing
+EXPECTED_VERSION=$(curl -sL "https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=stable" | jq -r '.version')
+echo "Expected version from API: $EXPECTED_VERSION"
+
 # Run the installer with auto-accept
 bun run ./src/main.ts --yes
 echo "PASS: Installer exited with code 0"
@@ -33,17 +37,25 @@ if ! grep -q "^Exec=$HOME/bin/cursor/cursor.appimage" "$DESKTOP_FILE"; then
   echo "FAIL: Desktop file has wrong Exec path"
   exit 1
 fi
-if ! grep -q "^Version=" "$DESKTOP_FILE"; then
-  echo "FAIL: Desktop file missing Version field"
+DESKTOP_VERSION=$(grep "^Version=" "$DESKTOP_FILE" | cut -d= -f2)
+if [ "$DESKTOP_VERSION" != "$EXPECTED_VERSION" ]; then
+  echo "FAIL: Desktop file version '$DESKTOP_VERSION' != expected '$EXPECTED_VERSION'"
   exit 1
 fi
 echo "PASS: Desktop entry is correct"
+echo "PASS: Desktop file version matches API version ($DESKTOP_VERSION)"
 
-# --- Assertion 3: AppImage runs (extract-and-run, no FUSE needed) ---
-if "$APPIMAGE" --appimage-extract-and-run --version >/dev/null 2>&1; then
-  echo "PASS: AppImage runs successfully"
+# --- Assertion 3: AppImage version matches API version ---
+CURSOR_OUTPUT=$("$APPIMAGE" --appimage-extract-and-run --version 2>/dev/null || true)
+if [ -n "$CURSOR_OUTPUT" ]; then
+  if echo "$CURSOR_OUTPUT" | grep -qF "$EXPECTED_VERSION"; then
+    echo "PASS: cursor --version contains expected version ($EXPECTED_VERSION)"
+  else
+    echo "FAIL: cursor --version output '$CURSOR_OUTPUT' does not contain '$EXPECTED_VERSION'"
+    exit 1
+  fi
 else
-  echo "WARN: AppImage --version exited non-zero (may be expected for some builds)"
+  echo "WARN: cursor --version returned empty (may be expected in Docker)"
 fi
 
 # --- Assertion 4: Shell alias added to .bashrc ---
