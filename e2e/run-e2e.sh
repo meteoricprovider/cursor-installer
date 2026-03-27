@@ -46,7 +46,11 @@ echo "PASS: Desktop entry is correct"
 echo "PASS: Desktop file version matches API version ($DESKTOP_VERSION)"
 
 # --- Assertion 3: AppImage version matches API version ---
-CURSOR_OUTPUT=$(xvfb-run -a "$APPIMAGE" --appimage-extract-and-run --no-sandbox --version 2>&1 || true)
+echo "Extracting and running cursor --version (this may take a while)..."
+echo "Starting xvfb-run at $(date +%T)"
+CURSOR_OUTPUT=$(timeout 120 xvfb-run -a "$APPIMAGE" --appimage-extract-and-run --no-sandbox --version 2>&1 || true)
+echo "Finished at $(date +%T)"
+echo "Raw output: '$CURSOR_OUTPUT'"
 if echo "$CURSOR_OUTPUT" | grep -qF "$EXPECTED_VERSION"; then
   echo "PASS: cursor --version contains expected version ($EXPECTED_VERSION)"
 else
