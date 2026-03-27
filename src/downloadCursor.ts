@@ -1,22 +1,23 @@
-import { confirm, isCancel, spinner } from "@clack/prompts";
 import { FileSystem, HttpClient, HttpClientResponse } from "@effect/platform";
 import { Effect, Schedule, Stream } from "effect";
 
+import { CliUI } from "./CliUI";
 import { getCurrentCursorVersion } from "./getCurrentCursorVersion";
 import { HOME_DIRECTORY } from "./utils/consts";
 import { OperationCancelledError } from "./utils/errors";
 import { CursorDownloadObject } from "./utils/schemas";
 
 export const downloadCursor = Effect.gen(function* () {
-	const httpCLient = yield* HttpClient.HttpClient;
+	const httpClient = yield* HttpClient.HttpClient;
 	const fs = yield* FileSystem.FileSystem;
+	const ui = yield* CliUI;
 
-	const downloadUrlSpinner = spinner({ indicator: "dots" });
+	const downloadUrlSpinner = ui.spinner("dots");
 
 	downloadUrlSpinner.start("Checking for new version of Cursor...");
 
 	const downloadUrlResponse = yield* Effect.retry(
-		httpCLient.get(
+		httpClient.get(
 			"https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=stable",
 		),
 		{
@@ -44,20 +45,13 @@ export const downloadCursor = Effect.gen(function* () {
 		downloadUrlSpinner.stop(`New version available: ${newVersion}`);
 	}
 
-	const shouldDownload = yield* Effect.orElse(
-		Effect.promise(() =>
-			confirm({
-				message: "Do you want to install?",
-			}),
-		),
-		() => Effect.fail(new OperationCancelledError()),
-	);
+	const shouldDownload = yield* ui.confirm("Do you want to install?");
 
-	if (!shouldDownload || isCancel(shouldDownload)) {
+	if (!shouldDownload) {
 		return yield* Effect.fail(new OperationCancelledError());
 	}
 
-	const appimageResponse = yield* httpCLient.get(downloadUrl);
+	const appimageResponse = yield* httpClient.get(downloadUrl);
 
 	const appimageStream = appimageResponse.stream;
 
@@ -65,7 +59,7 @@ export const downloadCursor = Effect.gen(function* () {
 
 	const contentLength = appimageResponse.headers["content-length"];
 
-	const downloadAppimageSpinner = spinner({ indicator: "timer" });
+	const downloadAppimageSpinner = ui.spinner("timer");
 
 	downloadAppimageSpinner.start("Downloading Cursor...");
 
@@ -74,11 +68,20 @@ export const downloadCursor = Effect.gen(function* () {
 			Stream.tap((chunk) => {
 				currentLength += chunk.byteLength;
 
-				const percentage = `${(
-					(currentLength / Number(contentLength as string)) * 100
-				).toFixed(0)}%`;
+				if (contentLength) {
+					const percentage = `${(
+						(currentLength / Number(contentLength)) *
+						100
+					).toFixed(0)}%`;
+					return Effect.succeed(
+						downloadAppimageSpinner.message(percentage),
+					);
+				}
 
-				return Effect.succeed(downloadAppimageSpinner.message(percentage));
+				const megabytes = `${(currentLength / 1024 / 1024).toFixed(1)} MB`;
+				return Effect.succeed(
+					downloadAppimageSpinner.message(megabytes),
+				);
 			}),
 		),
 		fs.sink("/tmp/cursor.appimage"),
