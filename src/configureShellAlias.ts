@@ -58,7 +58,7 @@ export const configureShellAlias = (version: string) =>
 
 		// Old-format alias present — replace it
 		const oldAliasPattern = `alias cursor="${HOME_DIRECTORY}/bin/cursor/cursor.appimage"`;
-		
+
 		if (shellConfigFileContent.includes(oldAliasPattern)) {
 			yield* fs.writeFileString(
 				shellConfigFile,

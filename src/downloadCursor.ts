@@ -78,7 +78,7 @@ export const downloadCursor = Effect.gen(function* () {
 				}
 
 				const megabytes = `${(currentLength / 1024 / 1024).toFixed(1)} MB`;
-				
+
 				return Effect.succeed(downloadAppimageSpinner.message(megabytes));
 			}),
 		),
