@@ -25,7 +25,7 @@
 		"cursor-installer": "src/main.ts"
 	},
 	"scripts": {
-		"prepare": "git config core.hooksPath .githooks",
+		"prepare": "git rev-parse --is-inside-work-tree >/dev/null 2>&1 && git config core.hooksPath .githooks || true",
 		"format": "biome format --write ./src",
 		"lint": "biome lint ./src",
 		"lint:check": "biome check ./src",
