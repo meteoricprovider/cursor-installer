@@ -14,10 +14,13 @@ WORKDIR /home/cursor-user
 # Shell config must exist for alias step
 RUN touch .bashrc
 
-# Copy project files and install dependencies
-COPY --chown=cursor-user:cursor-user . app
+# Copy lockfile first for dependency caching
+COPY --chown=cursor-user:cursor-user package.json bun.lock app/
 WORKDIR /home/cursor-user/app
 RUN bun install --frozen-lockfile
+
+# Copy rest of project files
+COPY --chown=cursor-user:cursor-user . .
 
 ENV SHELL=/bin/bash
 
