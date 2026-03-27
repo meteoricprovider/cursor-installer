@@ -73,10 +73,12 @@ export const downloadCursor = Effect.gen(function* () {
 					const percentage = `${(
 						(currentLength / Number(contentLength)) * 100
 					).toFixed(0)}%`;
+
 					return Effect.succeed(downloadAppimageSpinner.message(percentage));
 				}
 
 				const megabytes = `${(currentLength / 1024 / 1024).toFixed(1)} MB`;
+				
 				return Effect.succeed(downloadAppimageSpinner.message(megabytes));
 			}),
 		),

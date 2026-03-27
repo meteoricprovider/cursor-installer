@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2.21"
+
+      - run: bun install --frozen-lockfile
+
+      - run: bun run lint:check
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2.21"
+
+      - run: bun install --frozen-lockfile
+
+      - run: bun run typecheck
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2.21"
+
+      - run: bun install --frozen-lockfile
+
+      - run: bun run test
+
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: docker build -f Dockerfile.e2e -t cursor-installer-e2e .
+
+      - run: docker run --rm cursor-installer-e2e
+
+  release:
+    name: Release to npm
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [lint, typecheck, test, e2e]
+    concurrency:
+      group: release
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2.21"
+
+      - run: bun install --frozen-lockfile
+
+      - name: Check if release is needed
+        id: version-check
+        run: |
+          LOCAL_VERSION=$(jq -r .version package.json)
+          echo "local=$LOCAL_VERSION" >> "$GITHUB_OUTPUT"
+
+          PUBLISHED_VERSION=$(npm view cursor-installer version 2>/dev/null || echo "0.0.0")
+          echo "published=$PUBLISHED_VERSION" >> "$GITHUB_OUTPUT"
+
+          if [ "$(printf '%s\n' "$PUBLISHED_VERSION" "$LOCAL_VERSION" | sort -V | tail -n1)" = "$LOCAL_VERSION" ] && [ "$LOCAL_VERSION" != "$PUBLISHED_VERSION" ]; then
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup npm auth
+        if: steps.version-check.outputs.should_publish == 'true'
+        run: echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > .npmrc
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to npm
+        if: steps.version-check.outputs.should_publish == 'true'
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
