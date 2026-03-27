@@ -7,8 +7,13 @@ import {
 	createTestFileSystem,
 	createTestHttpClient,
 } from "./test-helpers";
+import { HOME_DIRECTORY, SHELL } from "./utils/consts";
 
-const HOME = process.env["HOME"] as string;
+const HOME = HOME_DIRECTORY as string;
+
+const shellConfigPath = SHELL?.includes("bash")
+	? `${HOME}/.bashrc`
+	: `${HOME}/.zshrc`;
 
 describe("installCursor", () => {
 	test("installs cursor and creates desktop entry", async () => {
@@ -79,7 +84,6 @@ describe("installCursor", () => {
 	});
 
 	test("adds alias to shell config when confirmed", async () => {
-		const shellConfigPath = `${HOME}/.zshrc`;
 		const { layer: cliLayer } = createTestCliUI({
 			confirmResponses: [true, true],
 		});
@@ -102,7 +106,6 @@ describe("installCursor", () => {
 	});
 
 	test("skips alias when it already exists in shell config", async () => {
-		const shellConfigPath = `${HOME}/.zshrc`;
 		const existingConfig = `# config\nalias cursor="${HOME}/bin/cursor/cursor.appimage"\n`;
 		const { layer: cliLayer, logs } = createTestCliUI({
 			confirmResponses: [true, true],

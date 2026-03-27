@@ -104,6 +104,7 @@ export const createTestFileSystem = (initialFiles?: Record<string, string>) => {
 		exists: (path) => Effect.succeed(files.has(path)),
 		readFileString: (path) => {
 			const content = files.get(path);
+
 			if (content === undefined) {
 				return Effect.fail(
 					new PlatformError.SystemError({
@@ -114,6 +115,7 @@ export const createTestFileSystem = (initialFiles?: Record<string, string>) => {
 					}),
 				);
 			}
+
 			return Effect.succeed(content);
 		},
 		writeFileString: (path, content) => {
@@ -126,7 +128,11 @@ export const createTestFileSystem = (initialFiles?: Record<string, string>) => {
 		},
 		copy: (from, to) => {
 			const content = files.get(from);
-			if (content !== undefined) files.set(to, content);
+			
+			if (content !== undefined) {
+				files.set(to, content);
+			}
+
 			return Effect.void;
 		},
 		remove: (path) => {

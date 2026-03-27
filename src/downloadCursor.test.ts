@@ -60,7 +60,7 @@ describe("downloadCursor", () => {
 			downloadCursor.pipe(Effect.provide(testLayer)),
 		);
 
-		expect(result).toBeDefined();
+		expect(result).toBe("1.0.0");
 	});
 
 	test("still asks to install when version is up to date", async () => {
