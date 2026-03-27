@@ -1,7 +1,5 @@
 import { Data } from "effect";
 
-import { SHELL } from "./consts";
-
 export class HomeDirectoryNotFoundError extends Data.TaggedError(
 	"HomeDirectoryNotFoundError",
 )<{
@@ -47,7 +45,7 @@ export class ShellConfigFileNotFoundError extends Data.TaggedError(
 )<{
 	message: string;
 }> {
-	constructor() {
-		super({ message: `Shell config file for ${SHELL} not found.` });
+	constructor(shell: string) {
+		super({ message: `Shell config file for ${shell} not found.` });
 	}
 }

@@ -7,11 +7,11 @@ import {
 	createTestFileSystem,
 	createTestHttpClient,
 } from "./test-helpers";
-import { HOME_DIRECTORY, SHELL } from "./utils/consts";
 
-const HOME = HOME_DIRECTORY as string;
+const HOME = process.env["HOME"] as string;
+const SHELL = process.env["SHELL"] as string;
 
-const shellConfigPath = SHELL?.includes("bash")
+const shellConfigPath = SHELL.includes("bash")
 	? `${HOME}/.bashrc`
 	: `${HOME}/.zshrc`;
 

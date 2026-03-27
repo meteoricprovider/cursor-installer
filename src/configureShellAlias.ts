@@ -2,11 +2,11 @@ import { FileSystem } from "@effect/platform";
 import { Effect } from "effect";
 
 import { CliUI } from "./CliUI";
-import { HOME_DIRECTORY, SHELL } from "./utils/consts";
 import {
-	ShellConfigFileNotFoundError,
-	ShellNotFoundError,
-} from "./utils/errors";
+	HOME_DIRECTORY as HomeDirectoryEffect,
+	SHELL as ShellEffect,
+} from "./utils/consts";
+import { ShellConfigFileNotFoundError } from "./utils/errors";
 
 export const configureShellAlias = (version: string) =>
 	Effect.gen(function* () {
@@ -21,9 +21,8 @@ export const configureShellAlias = (version: string) =>
 			return;
 		}
 
-		if (!SHELL) {
-			return yield* Effect.fail(new ShellNotFoundError());
-		}
+		const SHELL = yield* ShellEffect;
+		const HOME_DIRECTORY = yield* HomeDirectoryEffect;
 
 		// Only check for bash and zsh
 		const shellConfigFile = SHELL.includes("bash")
@@ -33,7 +32,7 @@ export const configureShellAlias = (version: string) =>
 				: undefined;
 
 		if (!shellConfigFile || !(yield* fs.exists(shellConfigFile))) {
-			return yield* Effect.fail(new ShellConfigFileNotFoundError());
+			return yield* Effect.fail(new ShellConfigFileNotFoundError(SHELL));
 		}
 
 		const shellConfigFileContent = yield* fs.readFileString(shellConfigFile);

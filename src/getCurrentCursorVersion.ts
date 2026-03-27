@@ -1,14 +1,10 @@
 import { FileSystem } from "@effect/platform";
 import { Effect } from "effect";
 
-import { HOME_DIRECTORY } from "./utils/consts";
-import { HomeDirectoryNotFoundError } from "./utils/errors";
+import { HOME_DIRECTORY as HomeDirectoryEffect } from "./utils/consts";
 
 export const getCurrentCursorVersion = Effect.gen(function* () {
-	if (!HOME_DIRECTORY) {
-		return yield* Effect.fail(new HomeDirectoryNotFoundError());
-	}
-
+	const HOME_DIRECTORY = yield* HomeDirectoryEffect;
 	const fs = yield* FileSystem.FileSystem;
 
 	const desktopFile = yield* fs.readFileString(

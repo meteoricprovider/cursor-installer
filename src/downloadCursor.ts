@@ -3,11 +3,12 @@ import { Effect, Schedule, Stream } from "effect";
 
 import { CliUI } from "./CliUI";
 import { getCurrentCursorVersion } from "./getCurrentCursorVersion";
-import { HOME_DIRECTORY } from "./utils/consts";
+import { HOME_DIRECTORY as HomeDirectoryEffect } from "./utils/consts";
 import { OperationCancelledError } from "./utils/errors";
 import { CursorDownloadObject } from "./utils/schemas";
 
 export const downloadCursor = Effect.gen(function* () {
+	const HOME_DIRECTORY = yield* HomeDirectoryEffect;
 	const httpClient = yield* HttpClient.HttpClient;
 	const fs = yield* FileSystem.FileSystem;
 	const ui = yield* CliUI;

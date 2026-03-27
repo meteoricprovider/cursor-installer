@@ -4,17 +4,14 @@ import { Effect } from "effect";
 import { CliUI } from "./CliUI";
 import { configureShellAlias } from "./configureShellAlias";
 import { downloadCursor } from "./downloadCursor";
-import { cursorIcon, HOME_DIRECTORY } from "./utils/consts";
 import {
-	HomeDirectoryNotFoundError,
-	InstallationFailedError,
-} from "./utils/errors";
+	cursorIcon,
+	HOME_DIRECTORY as HomeDirectoryEffect,
+} from "./utils/consts";
+import { InstallationFailedError } from "./utils/errors";
 
 export const installCursor = Effect.gen(function* () {
-	if (!HOME_DIRECTORY) {
-		return yield* Effect.fail(new HomeDirectoryNotFoundError());
-	}
-
+	const HOME_DIRECTORY = yield* HomeDirectoryEffect;
 	const fs = yield* FileSystem.FileSystem;
 	const ui = yield* CliUI;
 
