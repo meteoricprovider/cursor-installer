@@ -2,7 +2,7 @@ FROM oven/bun:slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
   ca-certificates curl jq \
-  libglib2.0-0 \
+  libglib2.0-0 libnss3 libasound2t64 libgbm1 libxkbcommon0 \
   && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user with bash shell
