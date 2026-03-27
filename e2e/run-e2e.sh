@@ -49,9 +49,11 @@ echo "PASS: Desktop file version matches API version ($DESKTOP_VERSION)"
 echo "Running cursor --version (this may take a while)..."
 echo "Starting at $(date +%T)"
 
-CURSOR_OUTPUT=$(timeout 120 "$APPIMAGE" --appimage-extract-and-run --headless --no-sandbox --version 2>&1 || true)
+CURSOR_STDOUT=$(timeout 120 "$APPIMAGE" --appimage-extract-and-run --headless --no-sandbox --version 2>/tmp/cursor-stderr || true)
 echo "Finished at $(date +%T)"
-echo "Raw output: '$CURSOR_OUTPUT'"
+echo "stdout: '$CURSOR_STDOUT'"
+echo "stderr: '$(cat /tmp/cursor-stderr)'"
+CURSOR_OUTPUT="$CURSOR_STDOUT"
 if echo "$CURSOR_OUTPUT" | grep -qF "$EXPECTED_VERSION"; then
   echo "PASS: cursor --version contains expected version ($EXPECTED_VERSION)"
 else
