@@ -46,16 +46,12 @@ echo "PASS: Desktop entry is correct"
 echo "PASS: Desktop file version matches API version ($DESKTOP_VERSION)"
 
 # --- Assertion 3: AppImage version matches API version ---
-CURSOR_OUTPUT=$("$APPIMAGE" --appimage-extract-and-run --version 2>/dev/null || true)
-if [ -n "$CURSOR_OUTPUT" ]; then
-  if echo "$CURSOR_OUTPUT" | grep -qF "$EXPECTED_VERSION"; then
-    echo "PASS: cursor --version contains expected version ($EXPECTED_VERSION)"
-  else
-    echo "FAIL: cursor --version output '$CURSOR_OUTPUT' does not contain '$EXPECTED_VERSION'"
-    exit 1
-  fi
+CURSOR_OUTPUT=$(xvfb-run -a "$APPIMAGE" --appimage-extract-and-run --no-sandbox --version 2>&1 || true)
+if echo "$CURSOR_OUTPUT" | grep -qF "$EXPECTED_VERSION"; then
+  echo "PASS: cursor --version contains expected version ($EXPECTED_VERSION)"
 else
-  echo "WARN: cursor --version returned empty (may be expected in Docker)"
+  echo "FAIL: cursor --version output '$CURSOR_OUTPUT' does not contain '$EXPECTED_VERSION'"
+  exit 1
 fi
 
 # --- Assertion 4: Shell alias added to .bashrc ---
