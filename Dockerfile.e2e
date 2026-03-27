@@ -1,0 +1,19 @@
+FROM oven/bun:slim
+
+# Create a non-root user with bash shell
+RUN useradd -m -s /bin/bash cursor-user
+
+USER cursor-user
+WORKDIR /home/cursor-user
+
+# Shell config must exist for alias step
+RUN touch .bashrc
+
+# Copy project files and install dependencies
+COPY --chown=cursor-user:cursor-user . app
+WORKDIR /home/cursor-user/app
+RUN bun install --frozen-lockfile
+
+ENV SHELL=/bin/bash
+
+CMD ["bash", "e2e/run-e2e.sh"]

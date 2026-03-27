@@ -1,39 +1,35 @@
 # cursor-installer
 
-A utility script to automatically download and install the latest version of the [Cursor](https://cursor.com/) editor on Linux.
-
-## Features
-
-- Automatically downloads the latest version of Cursor for Linux
-- Creates desktop entry for easy access
-- Skips download if the latest version is already installed
-- Handles all necessary file permissions
+Downloads and installs the latest [Cursor](https://cursor.com/) editor on Linux.
 
 ## Usage
-
-Simply run:
 
 ```bash
 npx cursor-installer@latest
 ```
 
-The script will:
+Pass `--yes` (or `-y`) to skip all confirmation prompts:
 
-1. Check if you already have the latest version installed
-2. Download the latest version if needed
-3. Set up the proper file permissions
-4. Create a desktop entry so you can find Cursor in your applications menu
-5. Add Cursor as an alias if needed
+```bash
+npx cursor-installer@latest --yes
+```
+
+What it does:
+
+- Checks your installed version and skips the download if it's current
+- Downloads the latest AppImage if needed
+- Sets file permissions
+- Creates a `.desktop` entry
+- Adds a `cursor` shell alias
 
 ## Requirements
 
-- Linux operating system
-- Bun runtime (^1.2.10)
+- Linux
+- Bun (^1.2.21)
 
-## Dependencies
+## Built with
 
-- [Typescript](https://www.typescriptlang.org/)
-- [Bun](https://bun.sh/)
+- [Bun](https://bun.sh/) + [TypeScript](https://www.typescriptlang.org/)
 - [Effect](https://effect.website/)
 - [Clack](https://github.com/bombshell-dev/clack)
 

@@ -157,6 +157,10 @@ export const createTestFileSystem = (
 			files.delete(path);
 			return Effect.void;
 		},
+		makeDirectory: (path) => {
+			operations.push({ op: "makeDirectory", path });
+			return Effect.void;
+		},
 		chmod: () => Effect.void,
 		sink: () => Sink.drain,
 	});

@@ -1,27 +1,23 @@
 # AGENTS.md
 
-This file provides guidance to AI coding agents working in this repository.
-
-## Project
-
 CLI tool that downloads and installs the latest Cursor editor on Linux, distributed via `npx cursor-installer@latest`.
 
-## Runtime & Package Manager
+## Stack
 
-This project uses Bun (not npm). Dependencies are managed with `bun install` (auto-install is disabled).
+- **Runtime**: Bun (not npm). Run `bun install` to manage dependencies (auto-install is disabled).
+- **Architecture**: All business logic uses [Effect](https://effect.website/) — generators, typed errors, and dependency injection via services/layers.
+- **Linting/Formatting**: Biome.
 
 ## Commands
 
 ```bash
 bun run dev          # Run the installer locally
+bun run test         # Run unit/integration tests
+bun run test:e2e     # Run E2E test in Docker (hits real cursor.com). Requires Docker.
 bun run format       # Format with Biome
 bun run lint         # Lint with Biome
 bun run lint:check   # Lint + format check
+bun run typecheck    # Type-check with tsgo
 ```
 
-No test suite exists.
-
-## Key Context
-
-- All business logic uses the [Effect](https://effect.website/) library — generators (`Effect.gen`), typed errors (`Data.TaggedError`), and platform services (`FileSystem`, `HttpClient`) accessed from Effect context.
-- CLI UI uses `@clack/prompts` for spinners, confirmations, and log messages.
+For Effect patterns and testing conventions, see [docs/EFFECT_AND_TESTING.md](docs/EFFECT_AND_TESTING.md).

@@ -29,13 +29,20 @@ export class CliUI extends Context.Tag("CliUI")<
 	}
 >() {}
 
-export const CliUILive = Layer.succeed(CliUI, {
+const cliUIImpl = {
 	intro: clackIntro,
 	confirm: (msg: string) =>
 		Effect.promise(() => clackConfirm({ message: msg })).pipe(
 			Effect.map((value) => (isCancel(value) ? false : value)),
 			Effect.orElse(() => Effect.succeed(false)),
 		),
-	spinner: (indicator) => spinner({ indicator }),
+	spinner: (indicator: "dots" | "timer") => spinner({ indicator }),
 	log,
+};
+
+export const CliUIInteractive = Layer.succeed(CliUI, cliUIImpl);
+
+export const CliUIAutoAccept = Layer.succeed(CliUI, {
+	...cliUIImpl,
+	confirm: (_msg: string) => Effect.succeed(true),
 });

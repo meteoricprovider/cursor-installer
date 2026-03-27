@@ -38,6 +38,33 @@ describe("installCursor", () => {
 		expect(desktopEntry).toContain(`Exec=${HOME}/bin/cursor/cursor.appimage`);
 	});
 
+	test("creates target directories before writing files", async () => {
+		const { layer: cliLayer } = createTestCliUI({
+			confirmResponses: [true, false],
+		});
+		const httpLayer = createTestHttpClient({ version: "1.0.0" });
+		const { layer: fsLayer, operations } = createTestFileSystem();
+
+		const testLayer = Layer.mergeAll(cliLayer, httpLayer, fsLayer);
+
+		await Effect.runPromise(installCursor.pipe(Effect.provide(testLayer)));
+
+		const mkdirOps = operations.filter((op) => op.op === "makeDirectory");
+		expect(mkdirOps).toContainEqual({
+			op: "makeDirectory",
+			path: `${HOME}/bin/cursor`,
+		});
+		expect(mkdirOps).toContainEqual({
+			op: "makeDirectory",
+			path: `${HOME}/.local/share/applications`,
+		});
+
+		// Directories must be created before any copy operation
+		const firstMkdir = operations.findIndex((op) => op.op === "makeDirectory");
+		const firstCopy = operations.findIndex((op) => op.op === "copy");
+		expect(firstMkdir).toBeLessThan(firstCopy);
+	});
+
 	test("backs up existing appimage with version in filename", async () => {
 		const { layer: cliLayer, logs } = createTestCliUI({
 			confirmResponses: [true, false],
