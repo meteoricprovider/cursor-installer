@@ -7,6 +7,8 @@ import {
 } from "@clack/prompts";
 import { Context, Effect, Layer } from "effect";
 
+import { OperationCancelledError } from "./utils/errors";
+
 export interface Spinner {
 	start(msg: string): void;
 	stop(msg: string): void;
@@ -17,7 +19,9 @@ export class CliUI extends Context.Tag("CliUI")<
 	CliUI,
 	{
 		readonly intro: (msg: string) => void;
-		readonly confirm: (msg: string) => Effect.Effect<boolean>;
+		readonly confirm: (
+			msg: string,
+		) => Effect.Effect<boolean, OperationCancelledError>;
 		readonly spinner: (indicator: "dots" | "timer") => Spinner;
 		readonly log: {
 			readonly success: (msg: string) => void;
@@ -32,9 +36,15 @@ export class CliUI extends Context.Tag("CliUI")<
 const cliUIImpl = {
 	intro: clackIntro,
 	confirm: (msg: string) =>
-		Effect.promise(() => clackConfirm({ message: msg })).pipe(
-			Effect.map((value) => (isCancel(value) ? false : value)),
-			Effect.orElse(() => Effect.succeed(false)),
+		Effect.tryPromise({
+			try: () => clackConfirm({ message: msg }),
+			catch: () => new OperationCancelledError(),
+		}).pipe(
+			Effect.flatMap((value) =>
+				isCancel(value)
+					? Effect.fail(new OperationCancelledError())
+					: Effect.succeed(value),
+			),
 		),
 	spinner: (indicator: "dots" | "timer") => spinner({ indicator }),
 	log,

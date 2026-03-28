@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { HttpClient, HttpClientResponse } from "@effect/platform";
 import { Effect, Layer } from "effect";
 
 import { downloadCursor } from "./downloadCursor";
@@ -82,4 +83,64 @@ describe("downloadCursor", () => {
 
 		expect(result).toBe(currentVersion);
 	});
+
+	test("fails with ParseError when API returns unexpected schema", async () => {
+		const { layer: cliLayer } = createTestCliUI({
+			confirmResponses: [true],
+		});
+		const { layer: fsLayer } = createTestFileSystem();
+
+		const httpLayer = Layer.succeed(
+			HttpClient.HttpClient,
+			HttpClient.make((req) =>
+				Effect.succeed(
+					HttpClientResponse.fromWeb(
+						req,
+						new Response(JSON.stringify({ unexpected: "schema" })),
+					),
+				),
+			),
+		);
+
+		const testLayer = Layer.mergeAll(cliLayer, httpLayer, fsLayer);
+
+		const result = await Effect.runPromise(
+			downloadCursor.pipe(Effect.provide(testLayer), Effect.either),
+		);
+
+		expect(result._tag).toBe("Left");
+		if (result._tag === "Left") {
+			expect(result.left._tag).toBe("ParseError");
+		}
+	});
+
+	test("fails when API returns non-2xx status", async () => {
+		const { layer: cliLayer } = createTestCliUI({
+			confirmResponses: [true],
+		});
+		const { layer: fsLayer } = createTestFileSystem();
+
+		const httpLayer = Layer.succeed(
+			HttpClient.HttpClient,
+			HttpClient.make((req) =>
+				Effect.succeed(
+					HttpClientResponse.fromWeb(
+						req,
+						new Response("Internal Server Error", { status: 500 }),
+					),
+				),
+			),
+		);
+
+		const testLayer = Layer.mergeAll(cliLayer, httpLayer, fsLayer);
+
+		const result = await Effect.runPromise(
+			downloadCursor.pipe(Effect.provide(testLayer), Effect.either),
+		);
+
+		expect(result._tag).toBe("Left");
+		if (result._tag === "Left") {
+			expect(result.left._tag).toBe("ResponseError");
+		}
+	}, 15_000);
 });

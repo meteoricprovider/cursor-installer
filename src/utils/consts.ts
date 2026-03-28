@@ -2,16 +2,19 @@ import { Effect } from "effect";
 
 import { HomeDirectoryNotFoundError, ShellNotFoundError } from "./errors";
 
-const HOME_ENV = process.env["HOME"];
-const SHELL_ENV = process.env["SHELL"];
+export const HOME_DIRECTORY = Effect.suspend(() => {
+	const home = process.env["HOME"];
 
-export const HOME_DIRECTORY = HOME_ENV
-	? Effect.succeed(HOME_ENV)
-	: Effect.fail(new HomeDirectoryNotFoundError());
+	return home
+		? Effect.succeed(home)
+		: Effect.fail(new HomeDirectoryNotFoundError());
+});
 
-export const SHELL = SHELL_ENV
-	? Effect.succeed(SHELL_ENV)
-	: Effect.fail(new ShellNotFoundError());
+export const SHELL = Effect.suspend(() => {
+	const shell = process.env["SHELL"];
+
+	return shell ? Effect.succeed(shell) : Effect.fail(new ShellNotFoundError());
+});
 
 const CURSOR_ICON_BASE64 = `iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAAAAADmVT4XAAAKtUlEQVR42u1aa5AU1RU+596e2Qcs
 u+yyrC5EUIIivqKyYkw0iNE8Kim11JQYTSpaVlIaXzFYpVSsEl8xvqNooqFiRYMvJGrKRyiNGkGF

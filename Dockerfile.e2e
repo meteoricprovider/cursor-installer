@@ -1,5 +1,9 @@
 FROM oven/bun:slim
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  ca-certificates curl jq \
+  && rm -rf /var/lib/apt/lists/*
+
 # Create a non-root user with bash shell
 RUN useradd -m -s /bin/bash cursor-user
 
@@ -9,10 +13,13 @@ WORKDIR /home/cursor-user
 # Shell config must exist for alias step
 RUN touch .bashrc
 
-# Copy project files and install dependencies
-COPY --chown=cursor-user:cursor-user . app
+# Copy lockfile first for dependency caching
+COPY --chown=cursor-user:cursor-user package.json bun.lock app/
 WORKDIR /home/cursor-user/app
 RUN bun install --frozen-lockfile
+
+# Copy rest of project files
+COPY --chown=cursor-user:cursor-user . .
 
 ENV SHELL=/bin/bash
 

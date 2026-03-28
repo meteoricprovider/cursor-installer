@@ -35,7 +35,7 @@ export class InstallationFailedError extends Data.TaggedError(
 }> {
 	constructor() {
 		super({
-			message: "Installation failed, previous version restored.",
+			message: "Installation failed.",
 		});
 	}
 }
@@ -47,5 +47,17 @@ export class ShellConfigFileNotFoundError extends Data.TaggedError(
 }> {
 	constructor(shell: string) {
 		super({ message: `Shell config file for ${shell} not found.` });
+	}
+}
+
+export class UnsupportedShellError extends Data.TaggedError(
+	"UnsupportedShellError",
+)<{
+	message: string;
+}> {
+	constructor(shell: string) {
+		super({
+			message: `Shell alias configuration is only supported for bash and zsh. Your shell (${shell}) is not supported.`,
+		});
 	}
 }

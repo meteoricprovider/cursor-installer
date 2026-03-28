@@ -13,9 +13,16 @@ export const getCurrentCursorVersion = Effect.gen(function* () {
 
 	const desktopFileLines = desktopFile.split("\n");
 
-	const versionLine = desktopFileLines.find((line) =>
-		line.startsWith("Version="),
+	const metaIndex = desktopFileLines.findIndex(
+		(line) => line.trim() === "[Meta]",
 	);
+
+	const versionLine =
+		metaIndex >= 0
+			? desktopFileLines
+					.slice(metaIndex)
+					.find((line) => line.startsWith("Version="))
+			: undefined;
 
 	const currentVersion = versionLine?.split("=")[1];
 

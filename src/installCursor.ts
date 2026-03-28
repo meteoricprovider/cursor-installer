@@ -3,7 +3,7 @@ import { Effect } from "effect";
 
 import { CliUI } from "./CliUI";
 import { configureShellAlias } from "./configureShellAlias";
-import { downloadCursor } from "./downloadCursor";
+import { downloadCursor, TEMP_DIR_NAME } from "./downloadCursor";
 import {
 	cursorIcon,
 	HOME_DIRECTORY as HomeDirectoryEffect,
@@ -17,6 +17,8 @@ export const installCursor = Effect.gen(function* () {
 
 	const version = yield* downloadCursor;
 
+	const tempAppImage = `${HOME_DIRECTORY}/${TEMP_DIR_NAME}/cursor.appimage`;
+
 	ui.log.step(`Installing Cursor ${version}...`);
 
 	// Ensure target directories exist
@@ -26,7 +28,7 @@ export const installCursor = Effect.gen(function* () {
 	});
 
 	// Add execute permissions
-	yield* fs.chmod("/tmp/cursor.appimage", 0o775);
+	yield* fs.chmod(tempAppImage, 0o775);
 
 	const appImagePath = `${HOME_DIRECTORY}/bin/cursor/cursor.appimage`;
 	const backupPath = `${HOME_DIRECTORY}/bin/cursor/cursor-pre-${version}-backup.appimage`;
@@ -46,19 +48,33 @@ export const installCursor = Effect.gen(function* () {
 	}
 
 	// Copy new binary — restore backup on failure
-	yield* fs.copy("/tmp/cursor.appimage", appImagePath).pipe(
-		Effect.catchAll(() =>
+	yield* fs.copy(tempAppImage, appImagePath).pipe(
+		Effect.catchAll((copyError) =>
 			Effect.gen(function* () {
 				if (yield* fs.exists(backupPath)) {
-					yield* fs.copy(backupPath, appImagePath);
+					const restored = yield* fs.copy(backupPath, appImagePath).pipe(
+						Effect.as(true),
+						Effect.catchAll(() => {
+							ui.log.error(
+								"Installation failed and backup restoration also failed. You may need to reinstall manually.",
+							);
+							return Effect.succeed(false);
+						}),
+					);
+					if (restored) {
+						ui.log.error("Installation failed, previous version restored.");
+					}
+				} else {
+					ui.log.error(
+						`Installation failed: ${copyError._tag === "SystemError" ? copyError.reason : "unknown error"}`,
+					);
 				}
-				ui.log.error("Installation failed, previous version restored.");
 				return yield* Effect.fail(new InstallationFailedError());
 			}),
 		),
 	);
 
-	yield* fs.remove("/tmp/cursor.appimage");
+	yield* fs.remove(tempAppImage).pipe(Effect.ignore);
 
 	yield* fs.writeFile(`${HOME_DIRECTORY}/bin/cursor/cursor.png`, cursorIcon);
 
@@ -80,5 +96,10 @@ Version=${version}
 `,
 	);
 
-	yield* configureShellAlias(version);
+	yield* configureShellAlias(version).pipe(
+		Effect.catchAll((error) => {
+			ui.log.warn(error.message);
+			return Effect.void;
+		}),
+	);
 });
