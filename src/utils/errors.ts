@@ -61,3 +61,13 @@ export class UnsupportedShellError extends Data.TaggedError(
 		});
 	}
 }
+
+export class UnknownCliActionError extends Data.TaggedError(
+	"UnknownCliActionError",
+)<{
+	message: string;
+}> {
+	constructor(type: string) {
+		super({ message: `Unknown CLI action: ${type}` });
+	}
+}
