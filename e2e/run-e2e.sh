@@ -47,13 +47,11 @@ echo "PASS: Desktop file version matches API version ($DESKTOP_VERSION)"
 
 # --- Assertion 3: AppImage version matches API version ---
 "$APPIMAGE" --appimage-extract >/dev/null 2>&1
-echo "Extracted AppImage contents:"
-ls squashfs-root/
-echo "Looking for package.json:"
-find squashfs-root -name "package.json" -path "*/app/*" | head -5
-for f in $(find squashfs-root -name "package.json" -path "*/app/*" | head -3); do
-  echo "$f: version=$(jq -r '.version // empty' "$f")"
-done
+echo "Checking squashfs-root/usr/share/cursor/resources/app/package.json:"
+jq '{version, name}' squashfs-root/usr/share/cursor/resources/app/package.json 2>&1
+echo "Also checking cursor.desktop inside AppImage:"
+grep "^Version\|^version" squashfs-root/cursor.desktop 2>&1 || echo "(no version in cursor.desktop)"
+rm -rf squashfs-root
 
 # --- Assertion 4: Shell alias added to .bashrc ---
 BASHRC="$HOME/.bashrc"
