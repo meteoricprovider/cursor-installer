@@ -20,4 +20,4 @@ bun run lint:check   # Lint + format check
 bun run typecheck    # Type-check with tsgo
 ```
 
-For Effect patterns and testing conventions, see [docs/EFFECT_AND_TESTING.md](docs/EFFECT_AND_TESTING.md).
+For Effect patterns and testing conventions, see [README.md](README.md#effect--testing-conventions).
