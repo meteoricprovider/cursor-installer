@@ -49,7 +49,7 @@ echo "PASS: Desktop file version matches API version ($DESKTOP_VERSION)"
 echo "Running cursor --version (this may take a while)..."
 echo "Starting at $(date +%T)"
 
-CURSOR_STDOUT=$(timeout 120 "$APPIMAGE" --appimage-extract-and-run --headless --no-sandbox --version 2>/tmp/cursor-stderr || true)
+CURSOR_STDOUT=$(timeout 120 xvfb-run -a "$APPIMAGE" --appimage-extract-and-run --no-sandbox --version 2>/tmp/cursor-stderr || true)
 echo "Finished at $(date +%T)"
 echo "stdout: '$CURSOR_STDOUT'"
 echo "stderr: '$(cat /tmp/cursor-stderr)'"
