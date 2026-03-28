@@ -6,7 +6,10 @@ import {
 	HOME_DIRECTORY as HomeDirectoryEffect,
 	SHELL as ShellEffect,
 } from "./utils/consts";
-import { ShellConfigFileNotFoundError } from "./utils/errors";
+import {
+	ShellConfigFileNotFoundError,
+	UnsupportedShellError,
+} from "./utils/errors";
 
 export const configureShellAlias = (version: string) =>
 	Effect.gen(function* () {
@@ -31,7 +34,11 @@ export const configureShellAlias = (version: string) =>
 				? `${HOME_DIRECTORY}/.zshrc`
 				: undefined;
 
-		if (!shellConfigFile || !(yield* fs.exists(shellConfigFile))) {
+		if (!shellConfigFile) {
+			return yield* Effect.fail(new UnsupportedShellError(SHELL));
+		}
+
+		if (!(yield* fs.exists(shellConfigFile))) {
 			return yield* Effect.fail(new ShellConfigFileNotFoundError(SHELL));
 		}
 

@@ -4,7 +4,11 @@ set -euo pipefail
 echo "=== E2E Test: cursor-installer --yes ==="
 
 # Fetch the latest version from the Cursor API before installing
-EXPECTED_VERSION=$(curl -sL "https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=stable" | jq -r '.version')
+EXPECTED_VERSION=$(curl -sfL "https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=stable" | jq -r '.version')
+if [ -z "$EXPECTED_VERSION" ] || [ "$EXPECTED_VERSION" = "null" ]; then
+  echo "FAIL: Could not fetch expected version from Cursor API"
+  exit 1
+fi
 echo "Expected version from API: $EXPECTED_VERSION"
 
 # Run the installer with auto-accept
@@ -22,6 +26,14 @@ if [ ! -x "$APPIMAGE" ]; then
   exit 1
 fi
 echo "PASS: AppImage exists and is executable"
+
+# --- Assertion 1b: Temp file was cleaned up (proves chmod targeted the right path) ---
+TEMP_APPIMAGE="$HOME/.cache/cursor-installer/cursor.appimage"
+if [ -f "$TEMP_APPIMAGE" ]; then
+  echo "FAIL: Temp file $TEMP_APPIMAGE was not cleaned up"
+  exit 1
+fi
+echo "PASS: Temp file cleaned up"
 
 # --- Assertion 2: Desktop entry exists with correct content ---
 DESKTOP_FILE="$HOME/.local/share/applications/cursor.desktop"
@@ -46,7 +58,10 @@ echo "PASS: Desktop entry is correct"
 echo "PASS: Desktop file version matches API version ($DESKTOP_VERSION)"
 
 # --- Assertion 3: AppImage version matches API version ---
-"$APPIMAGE" --appimage-extract >/dev/null 2>&1
+if ! "$APPIMAGE" --appimage-extract >/dev/null; then
+  echo "FAIL: AppImage extraction failed"
+  exit 1
+fi
 APPIMAGE_VERSION=$(jq -r '.version' squashfs-root/usr/share/cursor/resources/app/package.json)
 rm -rf squashfs-root
 if [ "$APPIMAGE_VERSION" != "$EXPECTED_VERSION" ]; then

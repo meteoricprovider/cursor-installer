@@ -1,4 +1,9 @@
-import { FileSystem, HttpClient, HttpClientResponse } from "@effect/platform";
+import {
+	FileSystem,
+	HttpClient,
+	HttpClientResponse,
+	type Error as PlatformError,
+} from "@effect/platform";
 import { Effect, Schedule, Stream } from "effect";
 
 import { CliUI } from "./CliUI";
@@ -7,33 +12,59 @@ import { HOME_DIRECTORY as HomeDirectoryEffect } from "./utils/consts";
 import { OperationCancelledError } from "./utils/errors";
 import { CursorDownloadObject } from "./utils/schemas";
 
+export const TEMP_DIR_NAME = ".cache/cursor-installer";
+
 export const downloadCursor = Effect.gen(function* () {
 	const HOME_DIRECTORY = yield* HomeDirectoryEffect;
-	const httpClient = yield* HttpClient.HttpClient;
+	const httpClient = (yield* HttpClient.HttpClient).pipe(
+		HttpClient.filterStatusOk,
+	);
 	const fs = yield* FileSystem.FileSystem;
 	const ui = yield* CliUI;
+
+	const tempDir = `${HOME_DIRECTORY}/${TEMP_DIR_NAME}`;
+	const tempAppImage = `${tempDir}/cursor.appimage`;
 
 	const downloadUrlSpinner = ui.spinner("dots");
 
 	downloadUrlSpinner.start("Checking for new version of Cursor...");
 
-	const downloadUrlResponse = yield* Effect.retry(
-		httpClient.get(
-			"https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=stable",
-		),
-		{
-			times: 3,
-			schedule: Schedule.exponential(1000),
-		},
-	);
-
-	const { downloadUrl, version: newVersion } =
-		yield* HttpClientResponse.schemaBodyJson(CursorDownloadObject)(
-			downloadUrlResponse,
+	const { downloadUrl, newVersion } = yield* Effect.gen(function* () {
+		const downloadUrlResponse = yield* Effect.retry(
+			httpClient
+				.get(
+					"https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=stable",
+				)
+				.pipe(
+					Effect.tapError(() =>
+						Effect.sync(() => downloadUrlSpinner.message("Retrying...")),
+					),
+				),
+			{
+				times: 3,
+				schedule: Schedule.exponential(1000),
+			},
 		);
 
-	const currentVersion = yield* Effect.orElse(getCurrentCursorVersion, () =>
-		Effect.succeed(undefined),
+		const { downloadUrl, version: newVersion } =
+			yield* HttpClientResponse.schemaBodyJson(CursorDownloadObject)(
+				downloadUrlResponse,
+			);
+
+		return { downloadUrl, newVersion };
+	}).pipe(
+		Effect.tapErrorCause(() =>
+			Effect.sync(() => downloadUrlSpinner.stop("Failed to check version")),
+		),
+	);
+
+	// Only swallow file-not-found errors (first install); let others propagate
+	const currentVersion = yield* getCurrentCursorVersion.pipe(
+		Effect.catchIf(
+			(error): error is PlatformError.SystemError =>
+				error._tag === "SystemError" && error.reason === "NotFound",
+			() => Effect.succeed(undefined),
+		),
 	);
 
 	const isCursorInstalled = yield* fs.exists(
@@ -52,37 +83,62 @@ export const downloadCursor = Effect.gen(function* () {
 		return yield* Effect.fail(new OperationCancelledError());
 	}
 
-	const appimageResponse = yield* httpClient.get(downloadUrl);
-
-	const appimageStream = appimageResponse.stream;
-
-	let currentLength = 0;
-
-	const contentLength = appimageResponse.headers["content-length"];
+	yield* fs.makeDirectory(tempDir, { recursive: true });
 
 	const downloadAppimageSpinner = ui.spinner("timer");
 
 	downloadAppimageSpinner.start("Downloading Cursor...");
 
-	yield* Stream.run(
-		appimageStream.pipe(
-			Stream.tap((chunk) => {
-				currentLength += chunk.byteLength;
+	yield* Effect.gen(function* () {
+		const appimageResponse = yield* Effect.retry(
+			httpClient
+				.get(downloadUrl)
+				.pipe(
+					Effect.tapError(() =>
+						Effect.sync(() =>
+							downloadAppimageSpinner.message("Retrying download..."),
+						),
+					),
+				),
+			{
+				times: 3,
+				schedule: Schedule.exponential(1000),
+			},
+		);
 
-				if (contentLength) {
-					const percentage = `${(
-						(currentLength / Number(contentLength)) * 100
-					).toFixed(0)}%`;
+		const appimageStream = appimageResponse.stream;
 
-					return Effect.succeed(downloadAppimageSpinner.message(percentage));
-				}
+		let currentLength = 0;
 
-				const megabytes = `${(currentLength / 1024 / 1024).toFixed(1)} MB`;
+		const contentLength = appimageResponse.headers["content-length"];
+		const parsedContentLength = Number(contentLength);
+		const hasValidContentLength =
+			contentLength !== undefined && Number.isFinite(parsedContentLength);
 
-				return Effect.succeed(downloadAppimageSpinner.message(megabytes));
-			}),
+		yield* Stream.run(
+			appimageStream.pipe(
+				Stream.tap((chunk) => {
+					currentLength += chunk.byteLength;
+
+					if (hasValidContentLength) {
+						const percentage = `${(
+							(currentLength / parsedContentLength) * 100
+						).toFixed(0)}%`;
+
+						return Effect.succeed(downloadAppimageSpinner.message(percentage));
+					}
+
+					const megabytes = `${(currentLength / 1024 / 1024).toFixed(1)} MB`;
+
+					return Effect.succeed(downloadAppimageSpinner.message(megabytes));
+				}),
+			),
+			fs.sink(tempAppImage),
+		);
+	}).pipe(
+		Effect.tapErrorCause(() =>
+			Effect.sync(() => downloadAppimageSpinner.stop("Download failed")),
 		),
-		fs.sink("/tmp/cursor.appimage"),
 	);
 
 	downloadAppimageSpinner.stop("Downloaded Cursor");

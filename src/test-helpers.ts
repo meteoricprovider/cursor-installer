@@ -98,7 +98,7 @@ export const createTestHttpClient = (options?: {
 
 export const createTestFileSystem = (
 	initialFiles?: Record<string, string>,
-	options?: { failCopyFrom?: string },
+	options?: { failCopyFrom?: string | string[] },
 ) => {
 	const files = new Map<string, string>(Object.entries(initialFiles ?? {}));
 	const binaryFiles = new Map<string, Uint8Array>();
@@ -133,13 +133,19 @@ export const createTestFileSystem = (
 		copy: (from, to) => {
 			operations.push({ op: "copy", path: to, from });
 
-			if (options?.failCopyFrom && from === options.failCopyFrom) {
+			const failPaths = options?.failCopyFrom
+				? Array.isArray(options.failCopyFrom)
+					? options.failCopyFrom
+					: [options.failCopyFrom]
+				: [];
+
+			if (failPaths.includes(from)) {
 				return Effect.fail(
 					new PlatformError.SystemError({
 						reason: "Unknown",
 						module: "FileSystem",
 						method: "copy",
-						description: `Simulated copy failure to: ${to}`,
+						description: `Simulated copy failure from: ${from} to: ${to}`,
 					}),
 				);
 			}

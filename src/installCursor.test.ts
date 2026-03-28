@@ -15,6 +15,8 @@ const shellConfigPath = SHELL.includes("bash")
 	? `${HOME}/.bashrc`
 	: `${HOME}/.zshrc`;
 
+const tempAppImage = `${HOME}/.cache/cursor-installer/cursor.appimage`;
+
 describe("installCursor", () => {
 	test("installs cursor and creates desktop entry", async () => {
 		const { layer: cliLayer } = createTestCliUI({
@@ -89,8 +91,8 @@ describe("installCursor", () => {
 		expect(infoLog?.message).toContain("cursor-pre-2.0.0-backup.appimage");
 	});
 
-	test("fails with ShellConfigFileNotFoundError when shell config does not exist", async () => {
-		const { layer: cliLayer } = createTestCliUI({
+	test("warns but succeeds when shell config does not exist", async () => {
+		const { layer: cliLayer, logs } = createTestCliUI({
 			// First confirm: "install?" → yes, Second confirm: "add alias?" → yes
 			confirmResponses: [true, true],
 		});
@@ -100,14 +102,12 @@ describe("installCursor", () => {
 
 		const testLayer = Layer.mergeAll(cliLayer, httpLayer, fsLayer);
 
-		const result = await Effect.runPromise(
-			installCursor.pipe(Effect.provide(testLayer), Effect.either),
-		);
+		// Should succeed — alias failure is non-fatal
+		await Effect.runPromise(installCursor.pipe(Effect.provide(testLayer)));
 
-		expect(result._tag).toBe("Left");
-		if (result._tag === "Left") {
-			expect(result.left._tag).toBe("ShellConfigFileNotFoundError");
-		}
+		// Desktop entry should still be written
+		const warnLog = logs.find((l) => l.level === "warn");
+		expect(warnLog?.message).toContain("not found");
 	});
 
 	test("adds alias to shell config when confirmed", async () => {
@@ -155,7 +155,7 @@ describe("installCursor", () => {
 			(op) =>
 				op.op === "copy" &&
 				op.path === appImagePath &&
-				op.from === "/tmp/cursor.appimage",
+				op.from === tempAppImage,
 		);
 
 		expect(removeOp).toBeGreaterThanOrEqual(0);
@@ -174,7 +174,7 @@ describe("installCursor", () => {
 			{
 				[appImagePath]: "old-appimage-content",
 			},
-			{ failCopyFrom: "/tmp/cursor.appimage" },
+			{ failCopyFrom: tempAppImage },
 		);
 
 		const testLayer = Layer.mergeAll(cliLayer, httpLayer, fsLayer);
@@ -196,6 +196,47 @@ describe("installCursor", () => {
 		expect(files.has(`${HOME}/.local/share/applications/cursor.desktop`)).toBe(
 			false,
 		);
+	});
+
+	test("logs restoration failure when both copy and restore fail", async () => {
+		const appImagePath = `${HOME}/bin/cursor/cursor.appimage`;
+		const backupPath = `${HOME}/bin/cursor/cursor-pre-2.0.0-backup.appimage`;
+		const { layer: cliLayer, logs } = createTestCliUI({
+			confirmResponses: [true, false],
+		});
+		const httpLayer = createTestHttpClient({ version: "2.0.0" });
+		// Both the temp→app copy AND the backup→app restore will fail
+		const { layer: fsLayer } = createTestFileSystem(
+			{
+				[appImagePath]: "old-appimage-content",
+			},
+			{ failCopyFrom: [tempAppImage, backupPath] },
+		);
+
+		const testLayer = Layer.mergeAll(cliLayer, httpLayer, fsLayer);
+
+		const result = await Effect.runPromise(
+			installCursor.pipe(Effect.provide(testLayer), Effect.either),
+		);
+
+		expect(result._tag).toBe("Left");
+		if (result._tag === "Left") {
+			expect(result.left._tag).toBe("InstallationFailedError");
+		}
+
+		// Should mention restoration failed
+		const restorationFailLog = logs.find(
+			(l) =>
+				l.level === "error" && l.message.includes("restoration also failed"),
+		);
+		expect(restorationFailLog).toBeDefined();
+
+		// Should NOT say "previous version restored" — that would be a lie
+		const restoredLog = logs.find(
+			(l) =>
+				l.level === "error" && l.message.includes("previous version restored"),
+		);
+		expect(restoredLog).toBeUndefined();
 	});
 
 	test("replaces old-format alias with nohup/disown format", async () => {
@@ -223,6 +264,34 @@ describe("installCursor", () => {
 		// Should log that alias was updated
 		const successLog = logs.find((l) => l.level === "success");
 		expect(successLog?.message).toContain("alias");
+	});
+
+	test("fails with InstallationFailedError on fresh install copy failure", async () => {
+		const { layer: cliLayer, logs } = createTestCliUI({
+			confirmResponses: [true, false],
+		});
+		const httpLayer = createTestHttpClient({ version: "1.0.0" });
+		// No existing appimage — fresh install
+		const { layer: fsLayer } = createTestFileSystem(
+			{},
+			{ failCopyFrom: tempAppImage },
+		);
+
+		const testLayer = Layer.mergeAll(cliLayer, httpLayer, fsLayer);
+
+		const result = await Effect.runPromise(
+			installCursor.pipe(Effect.provide(testLayer), Effect.either),
+		);
+
+		expect(result._tag).toBe("Left");
+		if (result._tag === "Left") {
+			expect(result.left._tag).toBe("InstallationFailedError");
+		}
+
+		// No backup restoration attempted (none existed)
+		const errorLog = logs.find((l) => l.level === "error");
+		expect(errorLog?.message).toContain("Installation failed");
+		expect(errorLog?.message).not.toContain("restored");
 	});
 
 	test("skips alias when new-format alias already exists", async () => {
